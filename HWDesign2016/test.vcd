@@ -1,0 +1,63 @@
+$date
+	Fri Apr 15 12:28:32 2016
+$end
+$version
+	Icarus Verilog
+$end
+$timescale
+	1s
+$end
+$scope module test $end
+$var wire 5 ! s [4:0] $end
+$var reg 4 " a [3:0] $end
+$var reg 4 # b [3:0] $end
+$scope module add $end
+$var wire 4 $ a [3:0] $end
+$var wire 4 % b [3:0] $end
+$var wire 5 & s [4:0] $end
+$upscope $end
+$upscope $end
+$enddefinitions $end
+#0
+$dumpvars
+b0 &
+b0 %
+b0 $
+b0 #
+b0 "
+b0 !
+$end
+#40
+b1 #
+b1 %
+b1 "
+b1 $
+b10 !
+b10 &
+#80
+b1000 #
+b1000 %
+b100 "
+b100 $
+b1100 !
+b1100 &
+#120
+b1 #
+b1 %
+b101 !
+b101 &
+#160
+b11 #
+b11 %
+b1001 "
+b1001 $
+b1100 !
+b1100 &
+#200
+b1101 #
+b1101 %
+b1101 "
+b1101 $
+b11010 !
+b11010 &
+#240
