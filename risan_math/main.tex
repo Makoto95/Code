@@ -1,0 +1,78 @@
+\documentclass[10pt,a4j,dvipdfmx]{jsarticle}
+\usepackage[utf8]{inputenc}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage[usenames,dvipdfmx]{color}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage[left=19.05mm, right=19.05mm, top=25.40mm, bottom=25.40mm]{geometry}
+\usepackage{tikz}
+\usepackage{circuitikz}
+\usepackage{siunitx}
+
+\usepackage{fouriernc}
+\usepackage[scaled]{helvet}
+
+\usepackage[T1]{fontenc}
+\renewcommand{\ttdefault}{fvm}
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\pagestyle{fancy}
+\lhead{}
+\chead{}
+\rhead{}
+\lfoot{}
+\cfoot{\thepage{} / \pageref{LastPage}}
+\rfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\pagestyle{fancy}
+\lhead{}
+\chead{}
+\rhead{}
+\lfoot{}
+\cfoot{\thepage{} / \pageref{LastPage}}
+\rfoot{}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+\title{離散数学レポート}
+\author{学籍番号330062D 土屋潤一郎}
+\date{\today}
+
+
+\begin{document}
+\maketitle
+\section{学籍番号}
+03-160441
+\section{氏名}
+土屋潤一郎
+\section{作成したプログラムおよび実行に必要なデータ、実行方法}
+\subsection{プログラム}
+\subsection{必要なデータ}
+\subsection{実行方法}
+ソースコードはD言語で記述されている。
+従ってコンパイラとしてDMD(Digital Mars D programming Language)またはGDC(GCCベースのコンパイラ)が必要である。
+筆者は今回、主としてDMD64 D Compiler v2.071.0を用い、デバッガが必要な際にはgdc (Ubuntu 4.8.4-2ubuntu1~14.04.3) 4.8.4（GCCベースなのでGDBが使用できる）を用いた。
+いずれでも動作することを確認している。
+動作方法は、コマンドラインで、
+\begin{description}
+\item \$ rdmd Dijkstra.d <start> <end> < Node.txt
+\item *<start>、<end>は整数で与える。
+\end{description}
+
+とすると、コンパイルと実行が同時に行われ、標準出力にNode <start>からNode <end>への最小コスト経路と、そのコストが出力される。
+
+\section{「最小コストの経路」の答え}
+\begin{description}
+\item 11->16->21->22->25->27->48->49->99, Cost: 8
+\item 17->31->33->36->45->27->29, Cost: 6
+\end{description}
+\section{考察}
+まず、今回構造体ではなくクラスを用いたのは、C言語以外の言語で、かつオブジェクト指向な言語を扱ってみたかったという理由によるものなので、あまり意味はない。
+
+今回はそれぞれのノードをインスタンスとして、始点からの最短コストノードの集合をQとしていた。
+が、他にエッジをインスタンス（或いは構造体）とする案もある。
+
+\end{document}

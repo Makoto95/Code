@@ -1,0 +1,2 @@
+#!/bin/bash
+rec -t raw -b 16 -e s -c 1 -r 44100 - | nc -l -v 50000 -u

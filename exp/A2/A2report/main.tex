@@ -1,0 +1,879 @@
+\documentclass[10pt,a4j,dvipdfmx]{jsarticle}
+\usepackage[utf8]{inputenc}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage[usenames,dvipdfmx]{color}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage[left=19.05mm, right=19.05mm, top=25.40mm, bottom=25.40mm]{geometry}
+\usepackage{tikz}
+\usepackage{circuitikz}
+\usepackage{siunitx}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{textcomp}
+\usepackage{gnuplot-lua-tikz}
+
+\lstset{%
+  language={C},
+  basicstyle={\small},%
+  identifierstyle={\small},%
+  commentstyle={\small\itshape},%
+  keywordstyle={\small\bfseries},%
+  ndkeywordstyle={\small},%
+  stringstyle={\small\ttfamily},
+  frame={tb},
+  breaklines=true,
+  columns=[l]{fullflexible},%
+  numbers=left,%
+  xrightmargin=0zw,%
+  xleftmargin=3zw,%
+  numberstyle={\scriptsize},%
+  stepnumber=1,
+  numbersep=1zw,%
+  lineskip=-0.5ex%
+}
+
+\usepackage{fouriernc}
+\usepackage[scaled]{helvet}
+\usepackage[T1]{fontenc}
+\renewcommand{\ttdefault}{fvm}
+
+\let\oldthefootnote\thefootnote
+\def\thefootnote{{\color{Magenta}\oldthefootnote}}
+
+\newcommand{\enhance}[1]{{\gtfamily\sffamily#1}}
+\makeatletter
+\def\@jikkenname{}
+\def\@jikkennum{}
+\def\@reportname{}
+\def\@studentnumber{}
+\def\@studentname{}
+\def\@studentdepartment{}
+\def\@friendnames{}
+\def\@groupnumber{}
+\newcommand{\jikkenset}[2]{\def\@jikkennum{#1}\def\@jikkenname{#2}}
+\newcommand{\studentset}[3]{\def\@studentnumber{#1}\def\@studentname{#2}\def\@studentdepartment{#3}}
+\newcommand{\reportnameset}[1]{\def\@reportname{#1}}
+\newcommand{\friendname}[1]{\def\@friendnames{#1}}
+\newcommand{\groupnumber}[1]{\def\@groupnumber{#1}}
+\renewcommand{\maketitle}{
+\noindent{\color{RoyalPurple}\hrule height 1pt \hfill}
+\vspace{5pt}
+\begin{center}
+\enhance{{\Large{電気電子情報一（前期）実験}}}\\[7pt]
+\enhance{{\Huge\textbf{\@jikkennum{}. \@jikkenname}}}\\[5pt]
+\enhance{{\LARGE{\@reportname}}}\\[15pt]
+\@studentnumber\ \ \ \@studentname{}（\@studentdepartment{}）\\[1pt]
+共同実験者: \@friendnames（第\@groupnumber{}班）\\[1pt]
+\today
+\end{center}
+\vspace{-10pt}
+\noindent{\color{RoyalPurple}\hrule height 1pt \hfill}
+}
+\makeatother
+\jikkenset{A2}{アナログ回路}
+\reportnameset{総合レポート}
+\studentset{03-160441}{土屋潤一郎}{工学部 電子情報工学科}
+\friendname{井上友貴、田中大幹、坂口達彦}
+\groupnumber{28}
+
+\makeatletter
+\let\@oldsec\section
+\let\@oldsubsec\subsection
+\renewcommand{\section}[1]{\@oldsec{#1}\vspace{-5pt}{\color{TealBlue}\hrule height 0.6pt \hfill}\par}
+\renewcommand{\thesection}{\arabic{section}.}
+\renewcommand{\subsection}[1]{\vspace{-7pt}\@oldsubsec{#1}}
+\makeatother
+
+\begin{document}
+\maketitle
+
+\section{実験の目的}
+増幅回路、発振回路、フィルタ回路の設計を通して、アナログ回路の設計に不可欠な、線形素子と、理想的な増幅素子として設計された演算増幅器とを用いた回路設計について学ぶ。
+\section{実験の原理}
+\subsection{演算増幅器}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=8cm]{OpAmp_OpenRoop.png}
+  \caption{uA741の開ループ利得（http://www.tij.co.jp/jp/lit/ds/symlink/ua741.pdf、8ページより）}
+\end{figure}
+増幅素子について理想的とは、電圧利得が無限大で、入力インピーダンスが無限大（つまり反転入力端子と非反転入力端子の間には電位差がない）、出力インピーダンスが0、周波数帯域が制限されないことなどを指す。
+しかし実際のオペアンプはそうではない。
+オペアンプの利得は有限で、その帯域も制限されている。
+例えば、今回使用したuA741は、図1のような開ループ特性を持つ。
+また、入力インピーダンスは有限の値を取るし、出力インピーダンスも値を持ってしまう。
+（但し、入力インピーダンスは大変大きな値で近似的には無限と考えられることも多いし、出力インピーダンスは帰還回路を構成することで見かけ上の値を低く抑えられる。）
+
+\subsection{帰還と発振}
+
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=8cm]{token.png}
+  \caption{負帰還の回路}
+\end{figure}
+
+図2のような負帰還の系を考える。すると、系全体の電圧増幅度は、
+\begin{equation}
+A_v = \frac{1}{\beta}\frac{A\beta}{1+A\beta}
+\end{equation}
+であるから、$A\beta = -1$のとき、分母が0になって無限大に発散する。
+さて、増幅素子の増幅率Aは図1に見たように周波数に依存するし、帰還回路も周波数に依存すると考えられる。
+従って、$A\beta = -1$を満たした時、微小な雑音のうち$A(\omega)\beta(\omega) = -1$を満たす周波数成分が無限大に増幅され、出力には正弦波が観測されることになる。これは発振と呼ばれる。
+
+\subsection{オペアンプを用いた機能回路}
+
+\subsubsection{反転増幅器}
+反転増幅器を図3に示す。反転増幅器は、$V_{in}$によって$R_1$に流れる電流と、$V_{out}$によって$R_2$に流れる電流が打ち消し合って反転入力端子の電位が0になる（仮想接地）ことで、接地されている非反転入力端子と、反転入力端子の電位が等しいということを満たす回路である。
+従ってその理想的な増幅率は、
+\begin{equation}
+A_v = -\frac{R_2}{R_1}
+\end{equation}
+但し、図1に見られるような、実際のオペアンプの限界から、高周波についてはこの限りでない。
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width=6cm, angle=270]{invAmp.pdf}
+        \caption{反転増幅器}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width = 6cm, angle=270]{uninvAmp.pdf}
+        \caption{非反転増幅器}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+
+\subsubsection{非反転増幅器}
+非反転増幅器を図4に示す。非反転増幅器は、$V_{in}$がオペアンプに直接入力される。と、オペアンプの出力からの電流はすべて$R_f$と$R_r$に流れる負帰還であり、非反転入力端子と反転入力端子の電位差が0になるのであるから、分圧の法則からその理想的な増幅率は、
+\begin{equation}
+A_v = -\frac{R_r+R_f}{R_r}
+\end{equation}
+但し、図1に見られるような、実際のオペアンプの限界から、高周波についてはこの限りでない。
+
+\subsubsection{微分器}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=8cm, angle=270]{diffAmp.pdf}
+  \caption{微分器}
+\end{figure}
+微分器を図5に示す。微分器は、入力電圧を（正確には、入力電圧の正負を反転して）時間微分する。
+最も基本的な（つまり、図4で括弧の中にある$R_r$と$C_f$を用いない）微分器では、$V_{in}$が時間微分された電流がオペアンプに反転入力される。
+反転入力端子は仮想接地なわけだから、負帰還は$V_{out}$と$R_f$によって発生する電流である。
+これと$V_{in}$が時間微分された電流が打ち消し合うのだから、
+\begin{align}
+\frac{V_{out}}{R_f} =& -C_r\frac{dV_{in}}{dt} \\
+V_{out} =& -C_rR_f\frac{dV_{in}}{dt}
+\end{align}
+入力を正弦波と考えると、s平面で表現される伝達関数H(s)は、
+\begin{equation}
+H(s) = -sC_rR_f
+\end{equation}
+となって、1次のHPFとなることがわかる。
+但し、負帰還ではあるが、入力がそもそもキャパシタンスを通っているので、正帰還になる周波数が存在する。
+その周波数では不安定になりやすいといえる。
+そこで、図5のように$R_r$を付加すると、$\omega_r = \frac{1}{R_rC_r}$以上の周波数ではこの直列で$R_r$が支配的となって、全体では反転増幅器と近似できるようになって、安定だといえる。
+さらに、図5のように$C_f$を付加すると、$\omega_f = \frac{1}{R_fC_f}$以上の周波数ではこの並列で$C_f$が支配的となって、全体では積分器に近似できるようになる。従って、この周波数帯での特性は、
+\begin{equation}
+V_{out} = -\frac{1}{C_fR_r}\int V_{in}dt
+\end{equation}
+から近似できて、周波数領域では1次のLPFとなる。
+
+\subsection{ウィーン・ブリッジ発振回路}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=8cm, angle=270]{Oscillator.pdf}
+  \caption{ウィーン・ブリッジ発振回路}
+\end{figure}
+図6のような、正帰還の回路を考える。
+非反転増幅回路部分の増幅率をA、帰還フイルタ部分の増幅率を$\beta$と考えると、正帰還であるから、
+\begin{equation}
+A_v = \frac{A}{1-A\beta}
+\end{equation}
+で、$A(\omega)\beta(\omega) = 1$のとき発振することが明らかである。
+
+帰還回路の特性は、帰還量を$k$として、
+\begin{equation}
+H(s) = k\frac{sCR}{(sCR)^2+3sCR+1}
+\end{equation}
+であるから、これを$\beta$に代入して、この発振回路全体の増幅率は、
+\begin{equation}
+A_v(s) = A\frac{(sCR)^2+3sCR+1}{(sCR)^2+(3-kA)sCR+1}
+\end{equation}
+で、$k=3/A$のとき、$\omega = 1/CR$の周波数成分が発振する。
+
+\subsection{パッシヴフィルタとアクティヴフィルタ}
+抵抗・コンデンサ・コイルの受動素子のみで構成されたフィルタをパッシヴフィルタと呼ぶ（電圧利得は0dBを超えない）のに対し、演算増幅器を用いたフィルタをアクティブフィルタと総称する。
+今回の実験では、パッシヴフィルタのうち3次0-R型（図7）のButterworthフィルタとChebyshevフィルタ、及びアクティブフィルタとして2次の非反転形多重帰還回路を実際に製作した。
+\begin{figure}[H]
+\centering
+\begin{circuitikz}
+\draw (6,1) to[short,-o] (8,1) to[short, o-](9,1) to [L, l=$L_{1}$] (9.5,1) to
+ [short, -*] (10.5,1) to [short, *-] (11.5,1) to [L, l=$L_{2}$] (12,1) to [short, -o] (13,1) to[short, o-] (14,1);
+\draw (10.5,1) to [C, l=$C$] (10.5,-1) ;
+\draw (6,-1) to[short,-o] (8,-1) to[short, o-] (9,-1) to
+ [short, -*] (10.5,-1) to [short, *-] (11.5,-1)  to [short, -o] (13,-1) ;
+\draw (8,-1) to [open, v=$V_{in}$] (8,1);
+\draw (14,-1) to [short, o-] (13,-1) to [open, v=$V_{out}$] (13,1) ;
+\draw (6,1) to[vsourcesin, l=$V_s$] (6,-1);
+\draw (14,1) to[R, l=$\SI{1}{\ohm}$] (14,-1);
+\end{circuitikz}
+\caption{3次0-R型規格化低域通過フィルタ}
+\end{figure}
+
+*注: 以下、2.5.1節と2.5.2節は、P3課題の総合レポートに記述したものである。
+\subsubsection{Butterworthフィルタ}
+Butterworth特性とは、最大平坦特性とも言われ、
+伝達関数の次数nに対して通過帯域が実現可能な範囲で最も平坦であるような周波数特性である。この特性は、伝達関数$F(\omega)$に対して、
+
+\begin{equation}
+|F(\omega)|^{2} = \frac{1}{1+\omega^{2n}}
+\end{equation}
+で与えられる。
+
+安定な回路を作りたいので、$s = j\omega$としたときの$|F(s)|^{2}$の極（複素平面の単位円を$2n$等分する点の集合となる）のうち、左反面に存在する$n$個が極となるように$F(s)$を定めれば良い。
+
+\subsubsection{Chebyshevフィルタ}
+Chebyshev特性とは、実現したい伝達関数(の曲線)を近似するときに、
+その近似誤差の評価関数としてChebyshevノルム
+\begin{equation}
+\|F\| = {\rm max}_{x \in \Delta} \left|F\left( x \right)\right|
+\end{equation}
+を用いたフィルタの持つ特性である。
+このノルムを用いた近似を行う帯域では、近似関数は実現したい関数に対して正負の値を交互にとる。
+（符号を変える回数は、近似関数のパラメータ$n$個に対して少なくとも$n-1$回である。）
+この特性を持つフィルタは近似を行う帯域によっていくつかの種類に分類できるが、
+本実験で設計するのは、
+通過域でこの評価関数を適用し（通過域でのリプルを許容し）減衰域に零点がない（伝送関数の減衰極が無限遠点にある）無極形通過域Chebyshevフィルタである。
+
+この特性は、伝達関数$F(\omega)$に対して、
+
+\begin{equation}
+|F(\omega)|^{2} = \frac{1}{1+\epsilon^{2}V_{n}^{2}(\omega)}
+\end{equation}
+で与えられる。
+（但し、$\epsilon$はリプルの大きさの程度を決める変数である。）	
+$V_{n}(\omega)$はチェビシェフの多項式として知られる、
+\begin{equation}
+  V_{n}(\omega) = 
+  \begin{cases}
+    \cos(n\cos^{-1} (\omega)) & {\rm} for\hspace{4pt}|\omega|\leq 1 \\
+    \cosh(n \cosh^{-1} (\omega)) & {\rm}  for\hspace{4pt}|\omega|\geq 1
+  \end{cases}
+\end{equation}
+なので、$s = j\omega$としたときの
+$|F(s)|^{2}$の極は
+短径$\sinh\left( (1/n)\sinh^{-1}(1/\epsilon)\right) $、
+長径$\cosh\left( (1/n)\sinh^{-1}(1/\epsilon)\right) $の楕円上の、偏角が$2\pi[\si{radian}]$を$2n$等分する点のうち、左反面にある点$n$個である。
+
+\subsubsection{非反転多重帰還回路}
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=8cm, angle=270]{Active.pdf}
+  \caption{非反転多重帰還回路}
+\end{figure}
+
+図のように、オペアンプを非反転増幅器として用いるフィルタを考える。オペアンプが理想的であると考えるとその電圧の伝達関数は、
+\begin{equation}
+\frac{V_{out}}{V_{in}} = 
+\frac{\left( 1+\frac{R_f}{R_r}\right) \frac{1}{Z_1 Z_4}}
+{\left( \frac{1}{Z_1} + \frac{1}{Z_2} + \frac{1}{Z_3} \right) \left( \frac{1}{Z_4} + \frac{1}{Z_5} \right) + \frac{1}{Z_4 Z_5} - \frac{1}{Z_2 Z_4} \left( 1+\frac{R_f}{R_r} \right) }
+\end{equation}
+である。
+二次のフィルタの一般的な伝達関数と比較して、それぞれのインピーダンス成分を決定する。
+\begin{table}[htb]
+  \begin{center}
+    \caption{要素の置換}
+    \begin{tabular}{|l||c|c|} \hline
+       & 図9（低域通過型） & 図10（高域通過型）\\ \hline \hline
+      $R_r$ & $\infty$ & $\infty$ \\
+      $R_f$ & 0 & 0 \\
+      $Z_1$ & $R$ & $\frac{1}{sC}$ \\
+      $Z_2$ & $\frac{1}{s\bullet 2C}$ & $R$ \\
+      $Z_3$ & $\infty$ & $\infty$ \\
+      $Z_4$ & $R$ & $\frac{1}{s C}$ \\
+      $Z_5$ & $\frac{1}{s C}$ & $2R$ \\ \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width=6cm, angle=270]{ActiveLPF.pdf}
+        \caption{低域通過型アクティブフィルタ}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width = 6cm, angle=270]{ActiveHPF.pdf}
+        \caption{高域通過型アクティブフィルタ}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+図9の伝達関数を式（15）と表1から計算すると、
+\begin{equation}
+\frac{V_{out}}{V_{in}} = \frac{1}{2C^2 R^2} \frac{1}{s^2 + \frac{1}{CR}s+\frac{1}{2C^2 R^2}}
+\end{equation}
+となって、遮断角周波数は$\omega_0 = \frac{1}{\sqrt{2}CR}$である。
+同様に図10の伝達関数も計算すると、
+\begin{equation}
+\frac{V_{out}}{V_{in}} = \frac{s^2}{s^2 + \frac{1}{CR}s+\frac{1}{2C^2 R^2}}
+\end{equation}
+となって、やはり遮断角周波数は$\omega_0 = \frac{1}{\sqrt{2}CR}$である。
+
+\section{実験方法}
+\subsection{オペアンプのオフセット調整}
+オペアンプは、内部にトランジスタを複数個用いている。
+これらのトランジスタは特性のばらつきがあり、単純に入力信号を0にしても出力信号が出てしまう。これをオフセットという。
+オペアンプ外部に可変抵抗をつなぐことで、これを補償出来るようになっている（図11）。
+そこで、オシロスコープを見ながら、オフセットがなるべく小さくなるように、可変抵抗を調整する。
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=6cm, angle=270]{Offset.pdf}
+  \caption{uA741のオフセット調整}
+\end{figure}
+
+\subsection{各種機能回路の周波数特性の計測}
+2.3節に挙げた各種機能回路を、以下のように設計してその周波数特性とステップ特性を観測する。
+\begin{description}
+\item[反転増幅器] 増幅率20dB
+\item[反転増幅器] 増幅率40dB
+\item[非反転増幅器] 増幅率20dB
+\item[非反転増幅器] 増幅率40dB
+\item[微分器] 最小構成 
+\item[微分器] 最小構成に$R_r$を加えたもの
+\item[微分器] 最小構成に$C_f$を加えたもの
+\item[微分器] 最小構成に$R_r$と$C_f$を加えたもの
+\end{description}
+
+\subsubsection{反転増幅回路}
+図3の反転増幅回路の増幅率は式（2）なのだから、
+\begin{table}[htb]
+  \begin{center}
+    \caption{反転増幅回路の設計}
+    \begin{tabular}{|l||c|c|} \hline
+       & $R_1$ & $R_2$\\ \hline \hline
+      20dB & \SI{10}{\kilo\ohm} & \SI{100}{\kilo\ohm} \\
+      40dB & \SI{1}{\kilo\ohm} & \SI{100}{\kilo\ohm} \\ \hline
+    \end{tabular}
+    \\但し、変数名は図3に同じ。
+  \end{center}
+\end{table}
+
+\subsubsection{非反転増幅回路}
+今回は反転増幅器に用いた抵抗をそのまま使用したが、図4の非反転増幅回路の増幅率は式（3）であるから増幅率は正確に20dBと40dBというわけではない。
+\begin{table}[htb]
+  \begin{center}
+    \caption{非反転増幅回路の設計}
+    \begin{tabular}{|l||c|c|c|} \hline
+       & $R_r$ & $R_f$ & 実際に測定されると予想される増幅率\\ \hline \hline
+      20dB & \SI{10}{\kilo\ohm} & \SI{100}{\kilo\ohm} &\SI{20.828}{\decibel}\\
+      40dB & \SI{1}{\kilo\ohm} & \SI{100}{\kilo\ohm} &\SI{40.086}{\decibel}\\ \hline
+    \end{tabular}
+    \\但し、変数名は図4に同じ。
+  \end{center}
+\end{table}
+
+\subsubsection{微分回路}
+微分回路では、最小構成以外では低域及び高域のカットが発生するから、その遮断周波数が観測しやすいように各素子の値を決定した。
+図5の変数名を採用すると、$C_r=\SI{0.22}{\micro\farad}$、$R_f=\SI{10}{\kilo\ohm}$、$R_r=\SI{10}{\kilo\ohm}$、$C_f=\SI{2200}{\pico\farad}$で製作し、その設計上の遮断周波数は、高域通過側が$f_r=\SI{72.4}{\hertz}$、低域通過側が$f_f=7.24\times10^{3}$\si{\hertz}である。
+
+以下、表4に各種機能回路の周波数応答の測定条件をまとめる。
+\begin{table}[H]
+  \begin{center}
+    \caption{機能回路の測定点の条件（周波数応答）}
+    \begin{tabular}{|l||c|c|c|} \hline
+      回路 & 周波数下限[\si{\hertz}] & 周波数上限[\si{\hertz}] & 測定頻度$^*$\\ \hline \hline
+      反転増幅回路 & 100 & 200k & 5\\
+      非反転増幅回路 & 100 & 200k & 5 \\ 
+      微分回路 & 20 & 200k & 20 \\ 
+      \hline
+    \end{tabular}
+    \\ $^*$周波数が10倍になる間に何回測定を行うか
+  \end{center}
+\end{table}
+
+\subsection{ウィーン・ブリッジ発振回路の発振観測}
+図6を以下の素子の値で製作し、オシロスコープを見ながら可変抵抗を用いて帰還量$k$の値を変えていき、発振が開始する$k$の値を調べる。
+さらに、スペクトラム・アナライザを用いて、発振回路の出力信号を観測する。
+次いで、図6のX点で、つまり帰還フィルタと非反転入力端子との間で回路を切断し、非反転入力端子から帰還フィルタまでの開ループ利得を測定し、発振を開始するために開ループ利得に必要とされる条件を明らかにする。
+以下、開ループ利得の周波数応答の測定条件をまとめる。
+\begin{table}[htb]
+  \begin{center}
+    \caption{ウィーン・ブリッジ発振回路開ループ利得の測定点の条件（周波数応答）}
+    \begin{tabular}{|l||c|c|c|} \hline
+      帰還量$k$ & 周波数下限[\si{\hertz}] & 周波数上限[\si{\hertz}] & 測定頻度$^*$\\ \hline \hline
+      発振開始前 & 10 & 200k & 20\\
+      発振開始点 & 10 & 200k & 10 \\ 
+      最大（$k=1$）& 10 & 200k & 20 \\ 
+      \hline
+    \end{tabular}
+    \\ $^*$周波数が10倍になる間に何回測定を行うか
+  \end{center}
+\end{table}
+
+\subsection{パッシヴフィルタのシュミレートと測定}
+今回の実験では、Butterworth特性を持つ3次の低域通過フィルタと高域通過フィルタ、及びChebyshev特性を持つ3次の低域通過フィルタについて、その周波数特性をシュミレートし、実際に製作して測定する。
+
+*注: 以下、3.4.1節から3.4.3節は、P3課題の総合レポートに記述したものである。
+\subsubsection{3次の0-R型フィルタの設計と伝達特性のシミュレート}
+ButterworthフィルタとChebyshevフィルタとでは、設計段階の最初の規格化低域通過フィルタの設計のみ、手順が異なる。
+
+最初に、図7に示す3次規格化低域通過フィルタの伝送関数は、
+\begin{equation}
+T(s) = 1/F(s) = L_1L_2C s^3 + L_1 s^2 + \left( L_1+L_2\right) s + 1
+\end{equation}
+である。
+
+\subsubsection{3次Butterworth規格化低域通過フィルタの設計}
+3次Butterworth規格化低域通過フィルタの伝送関数は、
+\begin{equation}
+T(s)  = s^3 + 2s^2 + 2s + 1
+\end{equation}
+これと式(6)との右辺同士を比較して、$L_1$、$L_2$、$C$の値を決めれば良い。
+
+\subsubsection{3次Chebyshev規格化低域通過フィルタの設計}
+Chebyshevフィルタにはリプルの程度を決める値である$\epsilon$があるが、これが1.0であるフィルタを設計する。
+3次Chebyshev規格化低域通過フィルタの伝達関数を求めるために、2.5.2にある法で極を求める。
+\begin{eqnarray}
+a &=& (\pi/6)(2k+1) \hspace{4pt} {\rm for}\hspace{4pt} k = 1, 2, 3, 4, 5, 6  \\
+b &=& \pm (1/3)\sinh^{-1}(1)\\
+\end{eqnarray}
+の下で、極は
+\begin{equation}
+s = \sin a \sinh b + j \cos a \cosh b
+\end{equation}
+で表される12個（うち半分は重複するので実質は6個）のうち、複素平面上左反面にある3つである。
+
+\subsubsection{インピーダンススケーリングと周波数変換（低域通過フィルタ）}
+遮断周波数\SI{1.5}{\kilo\hertz}、出力側インピーダンス$R = 50[\si{\ohm}]$の
+低域通過フィルタを設計する。
+回路の要素の変換は表1に示した変数変換の下で、以下の通り行われる。
+
+\begin{table}[htb]
+  \begin{center}
+    \caption{要素の置換}
+    \begin{tabular}{|l||c|c|} \hline
+       & インダクタンス & キャパシタンス\\ \hline \hline
+      基準 & $L=L_o$ & $C=C_o$ \\
+      変換後 & $L=L_oR/\omega_c$ & $C=C_o/\omega_cR$ \\ \hline
+    \end{tabular}
+    \\ 但し、$\omega_c$が遮断角周波数
+  \end{center}
+\end{table}
+
+\subsubsection{インピーダンススケーリングと周波数変換（高域通過フィルタ）}
+遮断周波数\SI{1.5}{\kilo\hertz}、出力側インピーダンス$R = 50[\si{\ohm}]$の
+低域通過フィルタを設計する。
+回路の要素の変換は表1に示した変数変換の下で、以下の通り行われる。
+
+\begin{table}[htb]
+  \begin{center}
+    \caption{要素の置換}
+    \begin{tabular}{|l||c|c|} \hline
+       & インダクタンス & キャパシタンス\\ \hline \hline
+      基準 & $L=L_o$ & $C=C_o$ \\
+      変換後 & $C=1/L_oR\omega_c$ & $L=R/C_o\omega_c$ \\ \hline
+    \end{tabular}
+    \\ 但し、$\omega_c$が遮断角周波数
+  \end{center}
+\end{table}
+
+\subsubsection{周波数特性のシミュレート}
+振幅特性及び位相特性のシミュレートは、\SI{1}{\volt}の正弦波に対する応答を見る。
+それぞれのフィルタのシミュレート条件を表6にまとめる。
+
+\begin{table}[H]
+  \begin{center}
+    \caption{シミュレートの条件（周波数応答）}
+    \begin{tabular}{|l||c|c|c|} \hline
+      フィルタ & 周波数下限[\si{\hertz}] & 周波数上限[\si{\hertz}] & 計算頻度$^*$\\ \hline \hline
+      ButterwothLPF & 10 & 100k & 500\\
+      ButterwothHPF & 10 & 100k & 500 \\ 
+      ChebyshevLPF & 10 & 100k & 500 \\ 
+      \hline
+    \end{tabular}
+    \\ $^*$周波数が10倍になる間に何回計算を行うか
+  \end{center}
+\end{table}
+
+\subsubsection{実際の測定}
+結局、3.4節で述べてきた方法によって、以下の図12〜14のように各素子の値を決定した。おおむねこの通りに製作できたが、Chebyshevフィルタの出力側抵抗は、実際に製作した回路では561\si{\ohm}となった。
+設計上の遮断周波数はそれぞれ、ButterworthLPFが2082Hz、ButterworthHPFが3123Hz、ChebyshevLPFが3201Hzである。
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width=6cm, angle=270]{But.pdf}
+        \caption{Butterworth低域通過フィルタ}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width = 6cm, angle=270]{ButHi.pdf}
+        \caption{Butterworth高域通過フィルタ}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+  
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=6cm, angle=270]{Che.pdf}
+    \caption{Chebyshev低域通過フィルタ}
+  \end{figure}
+これらのフィルタの周波数特性（測定点の条件は表9の通り）とステップ応答を測定する。
+\begin{table}[H]
+  \begin{center}
+    \caption{パッシヴフィルタ測定の条件（周波数応答）}
+    \begin{tabular}{|l||c|c|c|} \hline
+      フィルタ & 周波数下限[\si{\hertz}] & 周波数上限[\si{\hertz}] & 測定頻度$^*$\\ \hline \hline
+      ButterwothLPF & 10 & 200k & 25\\
+      ButterwothHPF & 10 & 200k & 25 \\ 
+      ChebyshevLPF & 10 & 200k & 25 \\ 
+      \hline
+    \end{tabular}
+    \\ $^*$周波数が10倍になる間に何回測定を行うか
+  \end{center}
+\end{table}
+
+\subsection{アクティヴフィルタの測定}
+図9及び図10のようなアクティヴフィルタを設計、製作し、その振幅特性とステップ応答を観測する。遮断周波数が測定しやすい値となるよう、以下のように各素子の値を決定した。設計上の遮断周波数はそれぞれ、低域通過フィルタが1003\si{\hertz}、高域通過フィルタが100.3\si{\hertz}、である。
+\begin{description}
+\item[低域通過フィルタ（図9）] $R=5.1\si{\kilo\ohm}$、$C=0.022\si{\micro\farad}$
+\item[高域通過フィルタ（図10）] $R=5.1\si{\kilo\ohm}$、$C=0.22\si{\micro\farad}$
+\end{description}
+これらのフィルタの周波数特性（測定点の条件は表10の通り）とステップ応答を測定する。
+\begin{table}[H]
+  \begin{center}
+    \caption{アクティヴフィルタ測定の条件（周波数応答）}
+    \begin{tabular}{|l||c|c|c|} \hline
+      フィルタ & 周波数下限[\si{\hertz}] & 周波数上限[\si{\hertz}] & 測定頻度$^*$\\ \hline \hline
+      LPF & 100 & 200k & 20 \\
+      HPF & 10 & 200k & 20 \\  
+      \hline
+    \end{tabular}
+    \\ $^*$周波数が10倍になる間に何回測定を行うか
+  \end{center}
+\end{table}
+
+
+\section{使用器具}
+
+\subsection{回路シミュレータ}
+\begin{description}
+\item[シミュレータ] LTSpiceI\hspace{-.1em}V ver.4.23
+\end{description}
+
+\subsection{シミュレータ実行環境}
+\begin{description}
+\item[PC] Dell Latitude E6430
+\item[OS] Windows 10 Education
+\item[CPU] Intel(R) Core(TM) i7-3630QM CPU @ 2.40GHz
+\item[メモリ] 16GB
+\end{description}
+
+\subsection{設計／プロトタイプ環境システム}
+\begin{description}
+\item[システム] NI ELVIS I\hspace{-.1em}I$^+$ 番号: A2-2
+\end{description}
+NI ELVIS I\hspace{-.1em}I$^+$は、素子を差し込み回路を構成するブレッドボードに、オシロスコープやファンクション・ジェネレータなどを内蔵した本体が接続されており、またこれらを簡便に扱うことの出来るGUIのソフトウェアがセットになっているシステムである。
+本実験課題にて製作した回路は全てこのブレッドボード上に構成されており、また測定はこのシステムを用いて行う。
+
+\section{実験結果と考察}
+
+\subsection{オペアンプのオフセット調整}
+10\si{\kilo\ohm}の半固定抵抗を用いてオペアンプのオフセット調整を行い、オフセットを400\si{\milli\volt}から600\si{\milli\volt}程度まで小さくすることが出来た。
+\subsection{各種機能回路の周波数特性}
+\subsubsection{反転増幅回路}
+反転増幅回路の周波数特性を、図15と図16に示す。	
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.6}{\input{invGain}}
+        \caption{反転増幅器の振幅特性}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.6}{\input{invPhaseDiff}}
+        \caption{反転増幅器の位相特性}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+\subsubsection{非反転増幅回路}
+反転増幅回路の周波数特性を、図17と図18に示す。	
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.6}{\input{uninvGain}}
+        \caption{非反転増幅器の振幅特性}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.6}{\input{uninvPhaseDiff}}
+        \caption{非反転増幅器の位相特性}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+
+\subsubsection{反転増幅回路と非反転増幅回路の遮断周波数}
+それぞれの回路について、測定結果から得られたおおよその遮断周波数を表11に示す。
+\begin{table}[H]
+  \begin{center}
+    \caption{増幅回路の遮断周波数}
+    \begin{tabular}{|l||c|c|c|} \hline
+       & \SI{20}{\decibel} & \SI{40}{\decibel} \\ \hline \hline
+      反転 & \SI{63}{\kilo\hertz} & \SI{7}{\kilo\hertz}  \\
+      非反転 & \SI{63}{\kilo\hertz} & \SI{7}{\kilo\hertz}  \\  
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+どちらも、この遮断周波数以上の周波数帯では\SI{-20}{\decibel}/decadeの傾きを見せる。
+これは、式（1）において、Aが充分小さければ$A_v \simeq \frac{1}{\beta}$、Aが充分大きければ$A_v \simeq A$であることから説明できる。
+Aは図1に見るような周波数依存性を持ち、そのため$A(s)\beta$についてどちらが支配的であるかの境界が遮断周波数にあらわれている。
+遮断周波数以上の周波数帯で見られる\SI{-20}{\decibel}/decadeの傾きは、図1に見られるようなオペアンプの特性が支配的に表れている結果である。
+
+\subsubsection{微分回路}
+微分回路の周波数特性を、図19と図20に示す。	
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.65}{\input{difGain}}
+        \caption{微分器の振幅特性}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.65}{\input{difPhasediff}}
+        \caption{微分器の位相特性}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+微分回路は、$R_r$と$C_f$を付加した場合、帯域通過フィルタとして動作していることがわかる。
+これは、2.3.3節ですでに説明したが、改めてこの回路の利得を見てみると、
+\begin{align}
+\frac{V_{out}}{V_{in}} =& -\frac{sC_r R_f}{\left( sC_rR_r+1 \right) \left( sC_fR_f+1 \right) }\\
+\simeq & -sC_r R_f \hspace{4pt}\textbf{for}\hspace{2pt}sC_rR_r \ll 1 \hspace{2pt}\wedge\hspace{2pt} \hspace{2pt}sC_fR_f \ll 1 \\
+\simeq & -\frac{R_f}{R_r} \hspace{4pt}\textbf{for}\hspace{2pt}sC_rR_r \gg 1 \hspace{2pt}\wedge\hspace{2pt} \hspace{2pt}sC_fR_f \ll 1 \\
+\simeq & -\frac{1}{sC_fR_r} \hspace{4pt}\textbf{for}\hspace{2pt}sC_rR_r \gg 1 \hspace{2pt}\wedge\hspace{2pt} \hspace{2pt}sC_fR_f \gg 1
+\end{align}
+となって、周波数領域では周波数が小さい方から順に微分特性、反転増幅特性、積分特性をもつことがわかり、測定結果にもこれが表れていると考えるのが妥当である。また、それぞれの周波数帯での方形波応答を図21〜図23を示す。
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width=6cm]{dif_Rr_Cf_50_step.png}
+        \caption{微分回路の方形波応答: \SI{50}{\hertz}（微分特性域）}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width = 6cm]{dif_Rr_Cf_1k_step.png}
+        \caption{微分回路の方形波応答: \SI{1}{\kilo\hertz}（反転増幅域）}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=6cm]{dif_Rr_Cf_15k_step.png}
+    \caption{微分回路の方形波応答: \SI{15}{\kilo\hertz}（積分特性域）}
+  \end{figure}
+
+図21は本来、インパルスが上下に交互に表れなければならないし、図23も本来であれば完全な三角波が観測されるはずだが、そうなっていないのは方形波が理想的ではないからである。
+同様の理由で、図22の反転増幅も完全ではない。
+しかし方形波が理想的でないという点を鑑みれば、これらの波形が出力されることは予想しうる範囲であり、微分回路がそれぞれの周波数帯でいかなる特性を見せるかについての説明になっているといえるだろう。
+
+\subsection{ウィーン・ブリッジ発振回路}
+回路が発振を開始した付近の帰還量$k$の値は、可変抵抗による分圧から計算される。
+オシロスコープを見ながら帰還量を大きくしていくと、最初オシロスコープにはなんの波形も出力されなかったが、正弦波が観測されるようになった。
+正弦波が観測されるようになった最小の点を発振開始として（実際には可変抵抗の細かい操作は困難で正確には値を決定できなかった）、その後の出力波形の変化を観測していった。
+発振を開始した付近で可変抵抗をテスタで測定したところ、帰還量$k$は、
+\begin{equation}
+k = \frac{2.798}{10.21} = 0.274
+\end{equation}
+であった。
+この付近とこの付近よりも充分大きな$k$の値の出力波形を図24、図25に示す。
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width=5cm]{Osci_k.png}
+        \caption{発振回路の出力波形: 発振開始直後}
+      \end{minipage} &
+      %---- 2番目の図 -------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \includegraphics[width = 5cm]{Osci_k_large.png}
+        \caption{発振回路の出力波形: $k=1$}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+また、発振が開始した直後の出力の、スペクトル分析を図26に示す。
+  \begin{figure}[H]
+    \centering
+    \includegraphics[width=6cm]{Osci_spectrum.png}
+    \caption{発振直後の出力波形の周波数解析}
+  \end{figure}
+図24と図25では、演算増幅器の増幅の限界（利得的な限界ではなく、出力電圧の限界）によって、正弦波が出力しきれていない。このため、図26では、方形波をフーリエ級数展開して出てくるような、基本波の奇数倍の周波数が大きく出ており、さらに三角波フーリエ級数展開して出てくるような、偶数倍の成分も見える。
+
+次に、図6のX点で切断してその点を始点と終点とした開ループ利得の周波数特性を、図27と図28に示す。
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.65}{\input{ORoopGain}}
+        \caption{発振回路（開ループ）の振幅特性}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.65}{\input{ORoopPhasediff}}
+        \caption{発振回路（開ループ）の位相特性}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+発振直後の$k$を用いた赤い測定結果に注目すると、\SI{1600}{\hertz}付近で利得\SI{0}{\decibel}、位相差0$^\circ$であることがわかる。
+これは、式（8）で$A\beta=1$を満たしている状態であるから、この周波数成分は無限大に増幅されることがわかる。すなわち、発振直後に表れる正弦波はこの周波数である。
+
+\subsection{パッシヴフィルタ}
+\subsubsection{Butterworth低域通過フィルタ}
+Butterworth低域通過フィルタの周波数特性のシュミレート結果と、測定結果を図29に、ステップ応答の測定結果を図30に示す。
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.5\hsize}
+        \centering
+        \scalebox{0.8}{\input{ButLPF}}
+        \caption{ButterworthLPFの周波数特性}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.5\hsize}
+        \centering
+        \includegraphics[width=6cm]{butter_step.png}
+        \caption{ButterworthLPFのステップ応答}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+
+\subsubsection{Butterworth高域通過フィルタ}
+Butterworth高域通過フィルタの周波数特性のシュミレート結果と、測定結果を図31に、ステップ応答の測定結果を図32に示す。
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.5\hsize}
+        \centering
+        \scalebox{0.8}{\input{ButHPF}}
+        \caption{ButterworthHPFの周波数特性}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.5\hsize}
+        \centering
+        \includegraphics[width=6cm]{butterHiPF_step.png}
+        \caption{ButterworthHPFのステップ応答}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+
+\subsubsection{Chebyshev低域通過フィルタ}
+Chebyshev低域通過フィルタの周波数特性のシュミレート結果と、測定結果を図33に、ステップ応答の測定結果を図34に示す。
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.5\hsize}
+        \centering
+        \scalebox{0.8}{\input{ChebyLPF}}
+        \caption{ChebyshevLPFの周波数特性}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.5\hsize}
+        \centering
+        \includegraphics[width=7cm]{cheby_step.png}
+        \caption{ChebyshevLPFのステップ応答}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+  
+  
+\subsection{アクティヴフィルタ}
+
+低域通過型・高域通過型双方の周波数特性の測定結果を図35に、低域通過型フィルタのステップ応答の測定結果を図36に、高域通過型フィルタのステップ応答の測定結果を図37に示す。
+
+  \begin{figure}[H]
+    \centering
+    \input{Active}
+    \caption{発振直後の出力波形の周波数解析}
+  \end{figure}
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.5\hsize}
+        \centering
+        \includegraphics[width=7cm]{LPF_step.png}
+        \caption{低域通過型フィルタのステップ応答}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.5\hsize}
+        \centering
+        \includegraphics[width=7cm]{HPF_step.png}
+        \caption{高域通過型フィルタのステップ応答}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+  \end{figure}
+
+減衰域での振幅特性の傾きはいずれもおおよそ-\SI{12}{\decibel}/octaveで、2次のフィルタとして妥当である。ステップ応答の結果も、立ち上がり・立ち下がりごとに一度だけオーバーシュートして（つまり、2回目の導関数=0の点で）入力に追いついている。
+
+しかし、低域通過型フィルタの設計上の遮断周波数は\SI{1003}{\hertz}だが、測定結果では\SI{900}{\hertz}前後で、10\%の誤差がある。また、高域通過型フィルタの設計上の遮断周波数は\SI{100.3}{\hertz}だが、測定結果では少なくとも\SI{100}{\hertz}よりは小さく（おそらく、\SI{95}{\hertz}付近）、やはり数\%の誤差がある。しかし、これらは素子の値に数\%の誤差があれば容易に出現しうる（遮断周波数は$C$と$R$で決まるのであった。）から、ほとんど設計どおりであると評価できるだろう。
+
+低域通過型フィルタの高周波領域では、少し減衰が見られるが、これはオペアンプの特性が強く表れたものである。一方、高域通過型フィルタの減衰域に見られる振幅特性の跳ね上がりの原因は不明だが、コンデンサの自己共振周波数を超えてしまい、等価直列インダクタンスによる効果が大きく表れてしまう領域に入った可能性が考えられる。
+
+\section{参考資料}
+\begin{enumerate}
+\item 東京大学工学部 電子情報工学科・電気電子工学科（2016）『電気電子情報第一（前期）実験 テキスト』
+\item R.M.Fano \& A.W.Lawson (1948) 菅原英彦訳（2009） 『マイクロ波フィルタの理論』丸善プラネット
+\item 古賀利郎（1978）『伝送回路』コロナ社
+\item 廣瀬明（2015） 『電気電子計測[第2版]』数理工学社
+
+\end{enumerate}
+
+
+\end{document}

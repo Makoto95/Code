@@ -1,0 +1,22 @@
+Circuit: * Z:\home\rector\Code\exp\P3\(2)ButHPF.asc
+
+.OP point found by inspection.
+
+Date: Sun Apr 24 22:48:42 2016
+Total elapsed time: 0.045 seconds.
+
+tnom = 27
+temp = 27
+method = modified trap
+totiter = 2082
+traniter = 2082
+tranpoints = 1042
+accept = 1042
+rejected = 0
+matrix size = 4
+fillins = 0
+solver = Normal
+Matrix Compiler1: 136 bytes object code size  0.4/0.3/[0.3]
+Matrix Compiler2: 236 bytes object code size  0.3/0.3/[0.3]
+
+
