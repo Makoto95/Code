@@ -1,0 +1,14 @@
+first half
+1. thou	5358
+2. thee	3108
+3. exeunt	1061
+4. hast	588
+5. thine	412
+last half
+1. holmes	2930
+2. mr	1736
+3. watson	1024
+4. don't	470
+5. sherlock	403
+
+time: 253 ms
