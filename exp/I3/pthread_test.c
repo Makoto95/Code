@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
   pthread_attr_init(&thread_attr);
   pthread_attr_setdetachstate(&thread_attr , PTHREAD_CREATE_DETACHED);
   if(pthread_create(&thread , &thread_attr , thread_func , NULL) !=0)
-        perror("pthread_create()");
+    perror("pthread_create()");
   pthread_attr_destroy(&thread_attr);
   fprintf(stderr , "Next line of pthread_create() called. thread ID=%ld\n" , thread);
   for(i = 0 ; i < 3 ; i++)

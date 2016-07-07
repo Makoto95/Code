@@ -1,6 +1,6 @@
 #include <AL/al.h>
 #include <AL/alc.h>
-#include <AL/alut.h>
+//#include <AL/alut.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -8,16 +8,13 @@
 #include <string.h>
 
 #define SRATE 8000
-#define SSIZE 1024
-
-
-short dint = 0;
+#define SSIZE 2000
 
 int main(int argc, char *argv[]){
-  alutInit(&argc,argv);
-  alGetError();
-  ALbyte  alBuffer[SRATE/2];
-  ALint  alSample;
+  short dint = 0;
+//  alutInit(&argc,argv);
+  ALbyte alBuffer[SRATE/2];
+  ALint alSample;
   ALCdevice* device = alcOpenDevice(NULL);
   ALCcontext* context = alcCreateContext(device, NULL);
   alcMakeContextCurrent(context);
@@ -39,22 +36,11 @@ int main(int argc, char *argv[]){
       --i;
       write(1, alBuffer, sizeof(ALbyte)*2*alSample);
     }
-/*
-    dint = ((((int *)alBuffer)[0] >> 16) & 0xFFFF); // Right Channel
-    write(fileno(stdout), &dint, sizeof(short));
-*/
-  //i += alSample;
-  /*ALuint playsource,buffer;
-  alGenSources(1, &playsource);
-  alGenBuffers(1, &buffer);
-  alBufferData(buffer, format, data->data, data->length, rate);
-  alSourceQueueBuffers(playsource, 1, &buffer);
-  alSourcePlay(playsource);*/
   }
 
   alcCaptureStop(alDevice);
   alcCaptureCloseDevice(alDevice);
   alcCloseDevice(device);
-  alutExit();
+//  alutExit();
   return 0;
 }
