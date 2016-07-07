@@ -177,6 +177,7 @@ module tcomputer;
 
    initial begin
       clk = 0;
+      $monitor( "%t PC: %b reg1:%b reg2: %b result: %b", $time, pc, reg1, reg2, result);
       $dumpfile("cpu.vcd");
       $dumpvars;
    end

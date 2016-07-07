@@ -162,7 +162,7 @@ module computer(clk, rstd);
    wire [31:0] pc, ins, reg1,reg2, result, nextpc;
    wire [4:0]  wra;
    wire [3:0]  wren;
-   initial $monitor( "%t PC: %2d reg1: 0x%2h reg2: 0x%2h result: 0x%2h", $time, pc, reg1, reg2, result);
+   initial $monitor( "%t PC: %2d reg1: 0x%2h reg2: 0x%2h result: 0x%2d", $time, pc, reg1, reg2, result);
    fetch fetch_body (pc[7:0], ins);
    execute execute_body (clk, ins, pc, reg1, reg2, wra, result, nextpc);
    writeback writeback_body (clk, rstd, nextpc, pc);

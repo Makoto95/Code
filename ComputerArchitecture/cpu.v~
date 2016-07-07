@@ -27,7 +27,6 @@ module execute (clk, ins, pc, reg1, reg2, wra, result, nextpc);
         6'd4: opr_gen = 5'd8;
         6'd5: opr_gen = 5'd9;
         6'd6: opr_gen = 5'd10;
-        6'd36:opr_gen = 5'd20; //追加
         default: opr_gen = 5'h1f;
       endcase
    endfunction
@@ -45,7 +44,6 @@ module execute (clk, ins, pc, reg1, reg2, wra, result, nextpc);
         5'd16: alu = operand1 << shift;
         5'd17: alu = operand1 >> shift;
         5'd18: alu = operand1 >>> shift;
-        5'd20: alu = operand2 - operand1; //追加
         default: alu = 32'hffffffff;
       endcase
    endfunction
@@ -54,7 +52,7 @@ module execute (clk, ins, pc, reg1, reg2, wra, result, nextpc);
       input [5:0]  op;
       input [31:0] alu_result, dpl_imm, dm_r_data, pc;
       case (op)
-        6'd0, 6'd1, 6'd4, 6'd5, 6'd6, 6'd36: calc = alu_result; //変更
+        6'd0, 6'd1, 6'd4, 6'd5, 6'd6: calc = alu_result;
         6'd3: calc = dpl_imm << 16;
         6'd16: calc = dm_r_data;
         6'd18: calc = {{16{dm_r_data[15]}}, dm_r_data[15:0]};
@@ -70,7 +68,7 @@ module execute (clk, ins, pc, reg1, reg2, wra, result, nextpc);
       case (op)
         6'd32: npc = (reg1 == reg2)? branch : nonbranch;
         6'd33: npc = (reg1 != reg2)? branch : nonbranch;
-        6'd34, 6'd36: npc = (reg1 < reg2)? branch : nonbranch; //変更
+        6'd34: npc = (reg1 < reg2)? branch : nonbranch;
         6'd35: npc = (reg1 <= reg2)? branch : nonbranch;
         6'd40, 6'd41: npc = addr;
         6'd42: npc = reg1;
@@ -83,7 +81,7 @@ module execute (clk, ins, pc, reg1, reg2, wra, result, nextpc);
       input [4:0]  rt, rd;
       case (op)
         6'd0: wreg = rd;
-        6'd1, 6'd3, 6'd4, 6'd5, 6'd6, 6'd16, 6'd18, 6'd20, 6'd36: wreg = rt; //変更
+        6'd1, 6'd3, 6'd4, 6'd5, 6'd6, 6'd16, 6'd18, 6'd20: wreg = rt;
         6'd41: wreg = 5'd31;
         default: wreg = 5'd0;
       endcase
@@ -103,7 +101,7 @@ module execute (clk, ins, pc, reg1, reg2, wra, result, nextpc);
    assign shift = ins [10:6] ;
    assign operation = ins [4:0] ;
    assign dpl_imm = {{16{ins[15]}} , ins [15:0]};
-   assign operand2 = (op == 6'd0 || op == 6'd36) ? reg2: dpl_imm; //変更
+   assign operand2 = (op == 6'd0) ? reg2: dpl_imm;
    assign alu_result = alu (opr_gen (op, operation) , shift, reg1, operand2);
    assign mem_address = reg1 + dpl_imm >>> 2;
    assign wren = wrengen(op);
@@ -114,8 +112,7 @@ module execute (clk, ins, pc, reg1, reg2, wra, result, nextpc);
    assign wra = wreg(op, ins[20:16], ins[15:11]);
    assign result = calc (op, alu_result, dpl_imm, dm_r_data, pc);
    assign addr = ins[25:0];
-   assign nonbranch = pc + 32'd1;
-   assign branch = nonbranch + dpl_imm;
+   assign nonbranch = pc+32'd1; assign branch = nonbranch + dpl_imm;
    assign nextpc = npc(op, reg1, reg2, branch, nonbranch, addr);
 endmodule
 
@@ -162,7 +159,6 @@ module computer(clk, rstd);
    wire [31:0] pc, ins, reg1,reg2, result, nextpc;
    wire [4:0]  wra;
    wire [3:0]  wren;
-   initial $monitor( "%t PC: %2d reg1: 0x%2h reg2: 0x%2h result: 0x%2h", $time, pc, reg1, reg2, result);
    fetch fetch_body (pc[7:0], ins);
    execute execute_body (clk, ins, pc, reg1, reg2, wra, result, nextpc);
    writeback writeback_body (clk, rstd, nextpc, pc);
