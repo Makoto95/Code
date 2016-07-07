@@ -27,7 +27,7 @@ module execute (clk, ins, pc, reg1, reg2, wra, result, nextpc);
         6'd4: opr_gen = 5'd8;
         6'd5: opr_gen = 5'd9;
         6'd6: opr_gen = 5'd10;
-        6'd36:opr_gen = 5'd20; //add
+        6'd36:opr_gen = 5'd20; //追加
         default: opr_gen = 5'h1f;
       endcase
    endfunction

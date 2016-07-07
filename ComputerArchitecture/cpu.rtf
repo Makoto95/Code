@@ -1,0 +1,192 @@
+{\rtf1\ansi\uc0\deff0{\fonttbl{\f0\fmodern\fprq1\fcharset0;}}{\colortbl;\red136\green136\blue136;\red186\green33\blue33;\red0\green68\blue221;\red102\green102\blue102;\red64\green128\blue128;\red160\green160\blue0;\red25\green23\blue124;\red0\green128\blue0;\red187\green102\blue136;\red187\green102\blue34;\red136\green0\blue0;\red170\green34\blue255;\red153\green153\blue153;\red0\green160\blue0;\red160\green0\blue0;\red255\green0\blue0;\red128\green0\blue128;\red176\green0\blue64;\red0\green0\blue255;\red187\green187\blue187;\red188\green122\blue0;\red0\green0\blue128;\red125\green144\blue41;\red210\green65\blue58;}\f0 module fetch {\cf4 (}pc{\cf4 ,} ins{\cf4 )}{\cf4 ;}\par
+   input {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} pc{\cf4 ;}\par
+   output {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} ins{\cf4 ;}\par
+   reg {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]}    ins_mem{\cf4 [}{\cf4 0}{\cf4 :}{\cf4 255}{\cf4 ]}{\cf4 ;}\par
+   initial\par
+      {\cf4 $}readmemb{\cf4 (}{\cf2 "}{\cf2 sample.bnr}{\cf2 "}{\cf4 ,} ins_mem{\cf4 )}{\cf4 ;}\par
+   assign ins {\cf4 =} ins_mem{\cf4 [}pc{\cf4 ]}{\cf4 ;}\par
+endmodule\par
+\par
+module execute {\cf4 (}clk{\cf4 ,} ins{\cf4 ,} pc{\cf4 ,} reg1{\cf4 ,} reg2{\cf4 ,} wra{\cf4 ,} result{\cf4 ,} nextpc{\cf4 )}{\cf4 ;}\par
+   input clk{\cf4 ;}\par
+   input {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} ins{\cf4 ,} pc{\cf4 ,} reg1{\cf4 ,} reg2{\cf4 ;}\par
+   output {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]} wra{\cf4 ;}\par
+   output {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} result{\cf4 ,} nextpc{\cf4 ;}\par
+   wire {\cf4 [}{\cf4 5}{\cf4 :}{\cf4 0}{\cf4 ]}    op{\cf4 ;}\par
+   wire {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]}    shift{\cf4 ,} operation{\cf4 ;}\par
+   wire {\cf4 [}{\cf4 25}{\cf4 :}{\cf4 0}{\cf4 ]}   addr{\cf4 ;}\par
+   wire {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]}   dpl_imm{\cf4 ,} operand2{\cf4 ,} alu_result{\cf4 ,} nonbranch{\cf4 ,} branch{\cf4 ,} mem_address{\cf4 ,} dm_r_data{\cf4 ;}\par
+   wire {\cf4 [}{\cf4 3}{\cf4 :}{\cf4 0}{\cf4 ]}    wren{\cf4 ;}\par
+\par
+   function {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]} opr_gen{\cf4 ;}\par
+      input {\cf4 [}{\cf4 5}{\cf4 :}{\cf4 0}{\cf4 ]} op{\cf4 ;}\par
+      input {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]} operation{\cf4 ;}\par
+      {\cf8\b case} {\cf4 (}op{\cf4 )}\par
+        {\cf4 6}{\cf8\b '}d0{\cf4 :} opr_gen {\cf4 =} operation{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d1{\cf4 :} opr_gen {\cf4 =} {\cf4 5}{\cf8\b '}d0{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d4{\cf4 :} opr_gen {\cf4 =} {\cf4 5}{\cf8\b '}d8{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d5{\cf4 :} opr_gen {\cf4 =} {\cf4 5}{\cf8\b '}d9{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d6{\cf4 :} opr_gen {\cf4 =} {\cf4 5}{\cf8\b '}d10{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d36{\cf4 :}opr_gen {\cf4 =} {\cf4 5}{\cf8\b '}d20{\cf4 ;} {\cf4 //}{\chbrdr\chcfpat16 {\u36861}}{\chbrdr\chcfpat16 {\u21152}}\par
+        default{\cf4 :} opr_gen {\cf4 =} {\cf4 5}{\cf8\b '}h1f{\cf4 ;}\par
+      endcase\par
+   endfunction\par
+\par
+   function {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} alu{\cf4 ;}\par
+      input {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]} opr{\cf4 ,} shift{\cf4 ;}\par
+      input {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} operand1{\cf4 ,} operand2{\cf4 ;}\par
+      {\cf8\b case} {\cf4 (}opr{\cf4 )}\par
+        {\cf4 5}{\cf8\b '}d0{\cf4 :} alu {\cf4 =} operand1 {\cf4 +} operand2{\cf4 ;}\par
+        {\cf4 5}{\cf8\b '}d2{\cf4 :} alu {\cf4 =} operand1 {\cf4 -} operand2{\cf4 ;}\par
+        {\cf4 5}{\cf8\b '}d8{\cf4 :} alu {\cf4 =} operand1 {\cf4 &} operand2{\cf4 ;}\par
+        {\cf4 5}{\cf8\b '}d9{\cf4 :} alu {\cf4 =} operand1 {\cf4 |} operand2{\cf4 ;}\par
+        {\cf4 5}{\cf8\b '}d10{\cf4 :} alu {\cf4 =} operand1 {\cf4 ^} operand2{\cf4 ;}\par
+        {\cf4 5}{\cf8\b '}d11{\cf4 :} alu {\cf4 =} {\cf4 ~} {\cf4 (}operand1 {\cf4 &} operand2{\cf4 )}{\cf4 ;}\par
+        {\cf4 5}{\cf8\b '}d16{\cf4 :} alu {\cf4 =} operand1 {\cf4 <}{\cf4 <} shift{\cf4 ;}\par
+        {\cf4 5}{\cf8\b '}d17{\cf4 :} alu {\cf4 =} operand1 {\cf4 >}{\cf4 >} shift{\cf4 ;}\par
+        {\cf4 5}{\cf8\b '}d18{\cf4 :} alu {\cf4 =} operand1 {\cf4 >}{\cf4 >}{\cf4 >} shift{\cf4 ;}\par
+        {\cf4 5}{\cf8\b '}d20{\cf4 :} alu {\cf4 =} operand2 {\cf4 -} operand1{\cf4 ;} {\cf4 //}{\chbrdr\chcfpat16 {\u36861}}{\chbrdr\chcfpat16 {\u21152}}\par
+        default{\cf4 :} alu {\cf4 =} {\cf4 32}{\cf8\b '}hffffffff{\cf4 ;}\par
+      endcase\par
+   endfunction\par
+\par
+   function {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} calc{\cf4 ;}\par
+      input {\cf4 [}{\cf4 5}{\cf4 :}{\cf4 0}{\cf4 ]}  op{\cf4 ;}\par
+      input {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} alu_result{\cf4 ,} dpl_imm{\cf4 ,} dm_r_data{\cf4 ,} pc{\cf4 ;}\par
+      {\cf8\b case} {\cf4 (}op{\cf4 )}\par
+        {\cf4 6}{\cf8\b '}d0{\cf4 ,} {\cf4 6}{\cf8\b '}d1{\cf4 ,} {\cf4 6}{\cf8\b '}d4{\cf4 ,} {\cf4 6}{\cf8\b '}d5{\cf4 ,} {\cf4 6}{\cf8\b '}d6{\cf4 ,} {\cf4 6}{\cf8\b '}d36{\cf4 :} calc {\cf4 =} alu_result{\cf4 ;} {\cf4 //}{\chbrdr\chcfpat16 {\u22793}}{\chbrdr\chcfpat16 {\u26356}}\par
+        {\cf4 6}{\cf8\b '}d3{\cf4 :} calc {\cf4 =} dpl_imm {\cf4 <}{\cf4 <} {\cf4 16}{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d16{\cf4 :} calc {\cf4 =} dm_r_data{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d18{\cf4 :} calc {\cf4 =} {\cf4 \{}{\cf4 \{}{\cf4 16}{\cf4 \{}dm_r_data{\cf4 [}{\cf4 15}{\cf4 ]}{\cf4 \}}{\cf4 \}}{\cf4 ,} dm_r_data{\cf4 [}{\cf4 15}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 \}}{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d20{\cf4 :} calc {\cf4 =} {\cf4 \{}{\cf4 \{}{\cf4 24}{\cf4 \{}dm_r_data{\cf4 [}{\cf4 7}{\cf4 ]}{\cf4 \}}{\cf4 \}}{\cf4 ,} dm_r_data{\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 \}}{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d41{\cf4 :} calc {\cf4 =} pc{\cf4 +}{\cf4 32}{\cf8\b '}d1{\cf4 ;}\par
+        default{\cf4 :} calc {\cf4 =} {\cf4 32}{\cf8\b '}hffffffff{\cf4 ;}\par
+      endcase\par
+   endfunction\par
+\par
+   function {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} npc{\cf4 ;}\par
+      input {\cf4 [}{\cf4 5}{\cf4 :}{\cf4 0}{\cf4 ]}  op{\cf4 ;}\par
+      input {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} reg1{\cf4 ,} reg2{\cf4 ,} branch{\cf4 ,} nonbranch{\cf4 ,} addr{\cf4 ;}\par
+      {\cf8\b case} {\cf4 (}op{\cf4 )}\par
+        {\cf4 6}{\cf8\b '}d32{\cf4 :} npc {\cf4 =} {\cf4 (}reg1 {\cf4 =}{\cf4 =} reg2{\cf4 )}{\cf4 ?} branch {\cf4 :} nonbranch{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d33{\cf4 :} npc {\cf4 =} {\cf4 (}reg1 {\cf4 !=} reg2{\cf4 )}{\cf4 ?} branch {\cf4 :} nonbranch{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d34{\cf4 ,} {\cf4 6}{\cf8\b '}d36{\cf4 :} npc {\cf4 =} {\cf4 (}reg1 {\cf4 <} reg2{\cf4 )}{\cf4 ?} branch {\cf4 :} nonbranch{\cf4 ;} {\cf4 //}{\chbrdr\chcfpat16 {\u22793}}{\chbrdr\chcfpat16 {\u26356}}\par
+        {\cf4 6}{\cf8\b '}d35{\cf4 :} npc {\cf4 =} {\cf4 (}reg1 {\cf4 <}{\cf4 =} reg2{\cf4 )}{\cf4 ?} branch {\cf4 :} nonbranch{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d40{\cf4 ,} {\cf4 6}{\cf8\b '}d41{\cf4 :} npc {\cf4 =} addr{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d42{\cf4 :} npc {\cf4 =} reg1{\cf4 ;}\par
+        default{\cf4 :} npc {\cf4 =} nonbranch{\cf4 ;}\par
+      endcase\par
+   endfunction\par
+\par
+   function {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]} wreg{\cf4 ;}\par
+      input {\cf4 [}{\cf4 5}{\cf4 :}{\cf4 0}{\cf4 ]}  op{\cf4 ;}\par
+      input {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]}  rt{\cf4 ,} rd{\cf4 ;}\par
+      {\cf8\b case} {\cf4 (}op{\cf4 )}\par
+        {\cf4 6}{\cf8\b '}d0{\cf4 :} wreg {\cf4 =} rd{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d1{\cf4 ,} {\cf4 6}{\cf8\b '}d3{\cf4 ,} {\cf4 6}{\cf8\b '}d4{\cf4 ,} {\cf4 6}{\cf8\b '}d5{\cf4 ,} {\cf4 6}{\cf8\b '}d6{\cf4 ,} {\cf4 6}{\cf8\b '}d16{\cf4 ,} {\cf4 6}{\cf8\b '}d18{\cf4 ,} {\cf4 6}{\cf8\b '}d20{\cf4 ,} {\cf4 6}{\cf8\b '}d36{\cf4 :} wreg {\cf4 =} rt{\cf4 ;} {\cf4 //}{\chbrdr\chcfpat16 {\u22793}}{\chbrdr\chcfpat16 {\u26356}}\par
+        {\cf4 6}{\cf8\b '}d41{\cf4 :} wreg {\cf4 =} {\cf4 5}{\cf8\b '}d31{\cf4 ;}\par
+        default{\cf4 :} wreg {\cf4 =} {\cf4 5}{\cf8\b '}d0{\cf4 ;}\par
+      endcase\par
+   endfunction\par
+\par
+   function {\cf4 [}{\cf4 3}{\cf4 :}{\cf4 0}{\cf4 ]} wrengen{\cf4 ;}\par
+      input {\cf4 [}{\cf4 5}{\cf4 :}{\cf4 0}{\cf4 ]}  op{\cf4 ;}\par
+      {\cf8\b case} {\cf4 (}op{\cf4 )}\par
+        {\cf4 6}{\cf8\b '}d24{\cf4 :} wrengen {\cf4 =} {\cf4 4}{\cf8\b '}b0000{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d26{\cf4 :} wrengen {\cf4 =} {\cf4 4}{\cf8\b '}b1100{\cf4 ;}\par
+        {\cf4 6}{\cf8\b '}d28{\cf4 :} wrengen {\cf4 =} {\cf4 4}{\cf8\b '}b1110{\cf4 ;}\par
+        default{\cf4 :} wrengen {\cf4 =} {\cf4 4}{\cf8\b '}b1111{\cf4 ;}\par
+      endcase\par
+   endfunction\par
+\par
+   assign op {\cf4 =} ins {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 26}{\cf4 ]} {\cf4 ;}\par
+   assign shift {\cf4 =} ins {\cf4 [}{\cf4 10}{\cf4 :}{\cf4 6}{\cf4 ]} {\cf4 ;}\par
+   assign operation {\cf4 =} ins {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]} {\cf4 ;}\par
+   assign dpl_imm {\cf4 =} {\cf4 \{}{\cf4 \{}{\cf4 16}{\cf4 \{}ins{\cf4 [}{\cf4 15}{\cf4 ]}{\cf4 \}}{\cf4 \}} {\cf4 ,} ins {\cf4 [}{\cf4 15}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 \}}{\cf4 ;}\par
+   assign operand2 {\cf4 =} {\cf4 (}op {\cf4 =}{\cf4 =} {\cf4 6}{\cf8\b '}d0 {\cf4 |}{\cf4 |} op {\cf4 =}{\cf4 =} {\cf4 6}{\cf8\b '}d36{\cf4 )} {\cf4 ?} reg2{\cf4 :} dpl_imm{\cf4 ;} {\cf4 //}{\chbrdr\chcfpat16 {\u22793}}{\chbrdr\chcfpat16 {\u26356}}\par
+   assign alu_result {\cf4 =} alu {\cf4 (}opr_gen {\cf4 (}op{\cf4 ,} operation{\cf4 )} {\cf4 ,} shift{\cf4 ,} reg1{\cf4 ,} operand2{\cf4 )}{\cf4 ;}\par
+   assign mem_address {\cf4 =} reg1 {\cf4 +} dpl_imm {\cf4 >}{\cf4 >}{\cf4 >} {\cf4 2}{\cf4 ;}\par
+   assign wren {\cf4 =} wrengen{\cf4 (}op{\cf4 )}{\cf4 ;}\par
+   data_mem data_mem_body0{\cf4 (}mem_address{\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 ,} clk{\cf4 ,} reg2{\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 ,} wren{\cf4 [}{\cf4 0}{\cf4 ]}{\cf4 ,} dm_r_data {\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 )}{\cf4 ;}\par
+   data_mem data_mem_body1{\cf4 (}mem_address{\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 ,} clk{\cf4 ,} reg2{\cf4 [}{\cf4 15}{\cf4 :}{\cf4 8}{\cf4 ]}{\cf4 ,} wren{\cf4 [}{\cf4 1}{\cf4 ]}{\cf4 ,} dm_r_data{\cf4 [}{\cf4 15}{\cf4 :}{\cf4 8}{\cf4 ]}{\cf4 )}{\cf4 ;}\par
+   data_mem data_mem_body2{\cf4 (}mem_address{\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 ,} clk{\cf4 ,} reg2{\cf4 [}{\cf4 23}{\cf4 :}{\cf4 16}{\cf4 ]}{\cf4 ,} wren{\cf4 [}{\cf4 2}{\cf4 ]}{\cf4 ,} dm_r_data{\cf4 [}{\cf4 23}{\cf4 :}{\cf4 16}{\cf4 ]}{\cf4 )}{\cf4 ;}\par
+   data_mem data_mem_body3{\cf4 (}mem_address{\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 ,} clk{\cf4 ,} reg2{\cf4 [}{\cf4 31}{\cf4 :}{\cf4 24}{\cf4 ]}{\cf4 ,} wren{\cf4 [}{\cf4 3}{\cf4 ]}{\cf4 ,} dm_r_data{\cf4 [}{\cf4 31}{\cf4 :}{\cf4 24}{\cf4 ]}{\cf4 )}{\cf4 ;}\par
+   assign wra {\cf4 =} wreg{\cf4 (}op{\cf4 ,} ins{\cf4 [}{\cf4 20}{\cf4 :}{\cf4 16}{\cf4 ]}{\cf4 ,} ins{\cf4 [}{\cf4 15}{\cf4 :}{\cf4 11}{\cf4 ]}{\cf4 )}{\cf4 ;}\par
+   assign result {\cf4 =} calc {\cf4 (}op{\cf4 ,} alu_result{\cf4 ,} dpl_imm{\cf4 ,} dm_r_data{\cf4 ,} pc{\cf4 )}{\cf4 ;}\par
+   assign addr {\cf4 =} ins{\cf4 [}{\cf4 25}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 ;}\par
+   assign nonbranch {\cf4 =} pc {\cf4 +} {\cf4 32}{\cf8\b '}d1{\cf4 ;}\par
+   assign branch {\cf4 =} nonbranch {\cf4 +} dpl_imm{\cf4 ;}\par
+   assign nextpc {\cf4 =} npc{\cf4 (}op{\cf4 ,} reg1{\cf4 ,} reg2{\cf4 ,} branch{\cf4 ,} nonbranch{\cf4 ,} addr{\cf4 )}{\cf4 ;}\par
+endmodule\par
+\par
+module data_mem{\cf4 (}address{\cf4 ,} clk{\cf4 ,} write_data{\cf4 ,} wren{\cf4 ,} read_data{\cf4 )}{\cf4 ;}\par
+   input {\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]} address{\cf4 ;}\par
+   input       clk{\cf4 ,} wren{\cf4 ;}\par
+   input {\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]} write_data{\cf4 ;}\par
+   output {\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]} read_data{\cf4 ;}\par
+   reg {\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]}    d_mem {\cf4 [}{\cf4 0}{\cf4 :}{\cf4 255}{\cf4 ]} {\cf4 ;}\par
+\par
+   always {\cf4 @}{\cf4 (}posedge clk{\cf4 )}\par
+     {\cf8\b if} {\cf4 (}wren {\cf4 =}{\cf4 =} {\cf4 0}{\cf4 )} d_mem{\cf4 [}address{\cf4 ]} {\cf4 <}{\cf4 =} write_data{\cf4 ;}\par
+   assign read_data {\cf4 =} d_mem{\cf4 [}address{\cf4 ]}{\cf4 ;}\par
+endmodule\par
+\par
+module writeback{\cf4 (}clk{\cf4 ,} rstd{\cf4 ,} nextpc{\cf4 ,} pc{\cf4 )}{\cf4 ;}\par
+   input clk{\cf4 ,} rstd{\cf4 ;}\par
+   input {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} nextpc{\cf4 ;}\par
+   output {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} pc{\cf4 ;}\par
+   reg {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} pc{\cf4 ;}\par
+   always {\cf4 @}{\cf4 (}negedge rstd or posedge clk{\cf4 )}\par
+     begin\par
+        {\cf8\b if} {\cf4 (}rstd {\cf4 =}{\cf4 =} {\cf4 0}{\cf4 )} pc {\cf4 <}{\cf4 =} {\cf4 32}{\cf8\b '}h00000000{\cf4 ;}\par
+        {\cf8\b else} {\cf8\b if} {\cf4 (}clk {\cf4 =}{\cf4 =} {\cf4 1}{\cf4 )} pc {\cf4 <}{\cf4 =} nextpc{\cf4 ;}\par
+     {\cf8\b end}\par
+endmodule\par
+\par
+module reg_file{\cf4 (}clk{\cf4 ,} rstd{\cf4 ,} wr{\cf4 ,} ra1{\cf4 ,} ra2{\cf4 ,} wa{\cf4 ,} wren{\cf4 ,} rr1{\cf4 ,} rr2{\cf4 )}{\cf4 ;}\par
+   input clk{\cf4 ,} rstd{\cf4 ,} wren{\cf4 ;}\par
+   input {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} wr{\cf4 ;}\par
+   input {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]}  ra1{\cf4 ,} ra2{\cf4 ,} wa{\cf4 ;}\par
+   output {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} rr1{\cf4 ,} rr2{\cf4 ;}\par
+   reg {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]}    rf {\cf4 [}{\cf4 0}{\cf4 :}{\cf4 31}{\cf4 ]}{\cf4 ;}\par
+   assign rr1 {\cf4 =} rf{\cf4 [}ra1{\cf4 ]}{\cf4 ;}\par
+   assign rr2 {\cf4 =} rf{\cf4 [}ra2{\cf4 ]}{\cf4 ;}\par
+   always {\cf4 @}{\cf4 (}negedge rstd or posedge clk{\cf4 )} begin\par
+     {\cf8\b if} {\cf4 (}rstd {\cf4 =}{\cf4 =} {\cf4 0}{\cf4 )} rf {\cf4 [}{\cf4 0}{\cf4 ]} {\cf4 <}{\cf4 =} {\cf4 32}{\cf8\b '}h00000000{\cf4 ;}\par
+     {\cf8\b else} {\cf8\b if} {\cf4 (}wren {\cf4 =}{\cf4 =} {\cf4 0}{\cf4 )} rf{\cf4 [}wa{\cf4 ]} {\cf4 <}{\cf4 =} wr{\cf4 ;}\par
+   {\cf8\b end}\par
+endmodule\par
+\par
+module computer{\cf4 (}clk{\cf4 ,} rstd{\cf4 )}{\cf4 ;}\par
+   input clk{\cf4 ,} rstd{\cf4 ;}\par
+   wire {\cf4 [}{\cf4 31}{\cf4 :}{\cf4 0}{\cf4 ]} pc{\cf4 ,} ins{\cf4 ,} reg1{\cf4 ,}reg2{\cf4 ,} result{\cf4 ,} nextpc{\cf4 ;}\par
+   wire {\cf4 [}{\cf4 4}{\cf4 :}{\cf4 0}{\cf4 ]}  wra{\cf4 ;}\par
+   wire {\cf4 [}{\cf4 3}{\cf4 :}{\cf4 0}{\cf4 ]}  wren{\cf4 ;}\par
+   fetch fetch_body {\cf4 (}pc{\cf4 [}{\cf4 7}{\cf4 :}{\cf4 0}{\cf4 ]}{\cf4 ,} ins{\cf4 )}{\cf4 ;}\par
+   execute execute_body {\cf4 (}clk{\cf4 ,} ins{\cf4 ,} pc{\cf4 ,} reg1{\cf4 ,} reg2{\cf4 ,} wra{\cf4 ,} result{\cf4 ,} nextpc{\cf4 )}{\cf4 ;}\par
+   writeback writeback_body {\cf4 (}clk{\cf4 ,} rstd{\cf4 ,} nextpc{\cf4 ,} pc{\cf4 )}{\cf4 ;}\par
+   reg_file rf_body {\cf4 (}clk{\cf4 ,} rstd{\cf4 ,} result{\cf4 ,} ins{\cf4 [}{\cf4 25}{\cf4 :}{\cf4 21}{\cf4 ]}{\cf4 ,} ins{\cf4 [}{\cf4 20}{\cf4 :}{\cf4 16}{\cf4 ]}{\cf4 ,} wra{\cf4 ,} {\cf4 (}{\cf4 ~}{\cf4 |} wra{\cf4 )} {\cf4 ,} reg1{\cf4 ,} reg2{\cf4 )}{\cf4 ;}\par
+endmodule\par
+\par
+module tcomputer{\cf4 ;}\par
+   reg clk{\cf4 ,} rstd{\cf4 ;}\par
+\par
+   initial begin\par
+      rstd {\cf4 =} {\cf4 1}{\cf4 ;}\par
+      {\cf4 #}{\cf4 10} rstd {\cf4 =} {\cf4 0}{\cf4 ;}\par
+      {\cf4 #}{\cf4 20} rstd {\cf4 =} {\cf4 1}{\cf4 ;}\par
+      {\cf4 #}{\cf4 10000} {\cf4 $}finish{\cf4 ;}\par
+   {\cf8\b end}\par
+\par
+   initial begin\par
+      clk {\cf4 =} {\cf4 0}{\cf4 ;}\par
+      {\cf4 $}dumpfile{\cf4 (}{\cf2 "}{\cf2 cpu.vcd}{\cf2 "}{\cf4 )}{\cf4 ;}\par
+      {\cf4 $}dumpvars{\cf4 ;}\par
+   {\cf8\b end}\par
+\par
+   always {\cf4 #}{\cf4 50} clk{\cf4 =}{\cf4 ~}clk{\cf4 ;}\par
+\par
+   computer computer_body{\cf4 (}clk{\cf4 ,} rstd{\cf4 )}{\cf4 ;}\par
+\par
+endmodule\par
+}
