@@ -183,14 +183,18 @@ void* udpClient(void* param){
       break;
     }
   }
+  startwaitMain();
   if(i == 1000){
     fprintf(stdout, "Connect.\n");
+    startRecAndSend(&senderinfo);
+    startRecvAndPlay(&senderinfo);
+    pthread_join(recThread, NULL);
+    pthread_join(recvThread, NULL);
   }
-  stdinFlag = OTHER;
-  startRecAndSend(&senderinfo);
-  startRecvAndPlay(&senderinfo);
-  pthread_join(recThread, NULL);
-  pthread_join(recvThread, NULL);
+  else{
+    fprintf(stdout, "Not Connect.\n");
+  }
+  stdinFlag = MAIN;
   close(sock);
 }
 
@@ -253,12 +257,23 @@ void* udpServe(void* param){
       perror("sendto");
       exit(1);
     }
-    callFlag = ON;
+//    callFlag = ON;
+    startwaitMain;
+    startRecAndSend(&senderinfo);
+    startRecvAndPlay(&senderinfo);
+    pthread_join(recThread, NULL);
+    pthread_join(recvThread, NULL);
   }
-  startRecAndSend(&senderinfo);
-  startRecvAndPlay(&senderinfo);
-  pthread_join(recThread, NULL);
-  pthread_join(recvThread, NULL);
+  else{
+    for(i = 0; i<1000; i++){
+      buf[i] = 1;
+    }
+    addrlen = sizeof(senderinfo);
+    if((n = sendto(sock, buf, 1000, 0, (struct sockaddr *)&senderinfo, addrlen)) == -1){
+      perror("sendto");
+      exit(1);
+    }
+  }
   close(sock);
 }
 
@@ -336,7 +351,7 @@ void* playFunc(struct sockaddr_in * senderinfo){
       perror("recv");
       exit(1);
     }
-//    write(fileno(stderr), data, 8000);
+    write(fileno(stderr), data, m);
     alGenBuffers(1, &buffer);
 //    fprintf(stderr, "buffergen\n");
     alBufferData(buffer, AL_FORMAT_MONO16, data, m, SRATE);
