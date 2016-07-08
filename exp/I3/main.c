@@ -42,7 +42,7 @@ pthread_t waitThread;
 pthread_t udpServThread;
 int32_t sock;
 ALuint playsource;
-ALuint buffer[10];
+ALuint buffer;
 int callFlag;
 int stdinFlag;
 pthread_t recThread;
