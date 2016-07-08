@@ -16,8 +16,8 @@
 #include <locale.h>
 #include <string.h>
 
-#define SRATE 8000
-#define RECSIZE 2000
+#define SRATE 10000
+#define RECSIZE 10000
 #define PLAYBUFSIZE 10
 #define ON 1
 #define OFF 0
@@ -42,7 +42,7 @@ pthread_t waitThread;
 pthread_t udpServThread;
 int32_t sock;
 ALuint playsource;
-ALuint buffer;
+ALuint buffer[10];
 int callFlag;
 int stdinFlag;
 pthread_t recThread;
@@ -276,12 +276,12 @@ void* recAndSend(struct sockaddr_in * senderinfo){
   while (1){
     alcGetIntegerv(alDevice, ALC_CAPTURE_SAMPLES, (ALCsizei)sizeof(ALint), &alSample);
     alcGetError(alDevice);
-    if(alSample > 4000) {
+    if(alSample > 6000) {
 //      fprintf(stderr, "%d\n", alSample);
       alcCaptureSamples(alDevice, (ALCvoid *)alrecBuffer, alSample);
       int n;
       socklen_t addrlen = sizeof(*senderinfo);
-      if((n = sendto(sock, alrecBuffer, 8000, 0, (struct sockaddr *)senderinfo, addrlen)) == -1){
+      if((n = sendto(sock, alrecBuffer, alSample*2, 0, (struct sockaddr *)senderinfo, addrlen)) != alSample*2){
         perror("sendto");
         exit(1);
       }
@@ -329,17 +329,17 @@ void* recvAndPlay(struct sockaddr_in * senderinfo){
 
 void* playFunc(struct sockaddr_in * senderinfo){
   while(1){
-    ALshort data[8000];
+    ALshort data[10000];
     int m;
     socklen_t addrlen;
-    if((m = recvfrom(sock, data, sizeof(ALshort)*8000, 0, (struct sockaddr *)senderinfo, &addrlen)) == -1 ){
+    if((m = recvfrom(sock, data, sizeof(ALshort)*10000, 0, (struct sockaddr *)senderinfo, &addrlen)) == -1 ){
       perror("recv");
       exit(1);
     }
 //    write(fileno(stderr), data, 8000);
     alGenBuffers(1, &buffer);
 //    fprintf(stderr, "buffergen\n");
-    alBufferData(buffer, AL_FORMAT_MONO16, data, sizeof(data),  SRATE);
+    alBufferData(buffer, AL_FORMAT_MONO16, data, m, SRATE);
     alSourceQueueBuffers(playsource, 1, &buffer);
     alSourcePlay(playsource);
 //    fprintf(stderr, "%s\n", "play");
