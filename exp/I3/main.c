@@ -17,8 +17,7 @@
 #include <string.h>
 
 #define SRATE 10000
-#define RECSIZE 10000
-#define PLAYBUFSIZE 10
+#define SAMPLESIZE 5000
 #define ON 1
 #define OFF 0
 #define MAIN 0
@@ -42,7 +41,6 @@ pthread_t waitThread;
 pthread_t udpServThread;
 int32_t sock;
 ALuint playsource;
-ALuint buffer;
 int callFlag;
 int stdinFlag;
 pthread_t recThread;
@@ -183,24 +181,29 @@ void* udpClient(void* param){
       break;
     }
   }
-  startwaitMain();
+
   if(i == 1000){
     fprintf(stdout, "Connect.\n");
     startRecAndSend(&senderinfo);
     startRecvAndPlay(&senderinfo);
+    stdinFlag = MAIN;
+    callFlag = ON;
+    startwaitMain();
     pthread_join(recThread, NULL);
     pthread_join(recvThread, NULL);
   }
   else{
     fprintf(stdout, "Not Connect.\n");
+    stdinFlag = MAIN;
+    callFlag = ON;
+    startwaitMain();
   }
-  stdinFlag = MAIN;
   close(sock);
 }
 
 void* udpServe(void* param){
+  fprintf(stderr, "%s\n", "Serve po");
   int port = 50000;
-  //  int sock;
   struct sockaddr_in addr;
   struct sockaddr_in senderinfo;
   socklen_t addrlen;
@@ -215,26 +218,19 @@ void* udpServe(void* param){
     perror("bind");
     exit(1);
   }
-  else{
-    addrlen = sizeof(senderinfo);
-//    fprintf(stderr,"senderinfo_len = %d, bind success\n", addrlen);
-  }
+  addrlen = sizeof(senderinfo);
 
   while(1) {
-//    fprintf(stderr,"while success\n");
     if(  (m = recvfrom(sock, buf, 1000, 0, (struct sockaddr *)&senderinfo, &addrlen))  == -1){
       perror("recvfrom");
       exit(1);
     }
     else{
-//      fprintf(stderr,"m = %d, recvfrom success\n", m);
     }
     for(i = 0; i<m; i++){
       if(buf[i] != 0) break;
     }
-//    fprintf(stderr,"i = %d\n", i);
     if(i == 1000) break;
-//    n = write(1, buf, strlen(buf));//////
   }
 
   inet_ntop(AF_INET, &(senderinfo.sin_addr), buf, 16);
@@ -244,7 +240,7 @@ void* udpServe(void* param){
   }
 
   pthread_cancel(waitThread);
-
+  stdinFlag = OTHER;
   fprintf(stdout,"There is a phone call from %s, do you pick up?[y/n]\n", buf);
   char s[1];
   scanf("%[yn]", s);
@@ -257,10 +253,11 @@ void* udpServe(void* param){
       perror("sendto");
       exit(1);
     }
-//    callFlag = ON;
-    startwaitMain;
     startRecAndSend(&senderinfo);
     startRecvAndPlay(&senderinfo);
+    callFlag = ON;
+    stdinFlag = MAIN;
+    startwaitMain();
     pthread_join(recThread, NULL);
     pthread_join(recvThread, NULL);
   }
@@ -278,21 +275,19 @@ void* udpServe(void* param){
 }
 
 void* recAndSend(struct sockaddr_in * senderinfo){
-  ALbyte alrecBuffer[RECSIZE*2];
+  ALbyte alrecBuffer[SAMPLESIZE*sizeof(ALshort)];
   ALint alSample;
   ALCdevice* device = alcOpenDevice(NULL);
   ALCcontext* context = alcCreateContext(device, NULL);
   alcMakeContextCurrent(context);
-  ALCdevice* alDevice = alcCaptureOpenDevice(NULL, SRATE, AL_FORMAT_MONO16, RECSIZE);
+  ALCdevice* alDevice = alcCaptureOpenDevice(NULL, SRATE, AL_FORMAT_MONO16, SAMPLESIZE);
   alcGetError(alDevice);
   alcCaptureStart(alDevice);
   alcGetError(alDevice);
-//  fprintf(stderr, "POPOPOPOPO\n");
   while (1){
     alcGetIntegerv(alDevice, ALC_CAPTURE_SAMPLES, (ALCsizei)sizeof(ALint), &alSample);
     alcGetError(alDevice);
-    if(alSample > 6000) {
-//      fprintf(stderr, "%d\n", alSample);
+    if(alSample > SAMPLESIZE/2) {
       alcCaptureSamples(alDevice, (ALCvoid *)alrecBuffer, alSample);
       int n;
       socklen_t addrlen = sizeof(*senderinfo);
@@ -300,6 +295,7 @@ void* recAndSend(struct sockaddr_in * senderinfo){
         perror("sendto");
         exit(1);
       }
+      fprintf(stderr, "%s %d\n", "sendSample", n/2);
     }
     if(callFlag==OFF) break;
   }
@@ -309,22 +305,23 @@ void* recAndSend(struct sockaddr_in * senderinfo){
 }
 
 void* recvAndPlay(struct sockaddr_in * senderinfo){
-//  const int bufsize = BUFSIZE;
   ALCdevice* device = alcOpenDevice(NULL);
   alGetError();
   ALCcontext* context = alcCreateContext(device, NULL);
   alcMakeContextCurrent(context);
+  ALenum error;
 
-  //  ALshort data[SSIZE];
-  ALuint buffer;
-  ALuint playsource;
   pthread_t playThread, queueingThread;
   pthread_attr_t playThread_attr, queueingThread_attr;
-
+  alGetError();
   alGenSources(1, &playsource);
+  if ((error = alGetError()) != AL_NO_ERROR){
+    fprintf(stderr, "%s %x\n", "Error: alGenSources", error);
+    exit(1);
+  }
 
   pthread_attr_init(&playThread_attr);
-  if(pthread_create(&playThread , &playThread_attr , playFunc , &buffer) !=0)
+  if(pthread_create(&playThread , &playThread_attr , playFunc , senderinfo) !=0)
   perror("pthread_create()");
   pthread_attr_destroy(&playThread_attr);
 
@@ -343,37 +340,83 @@ void* recvAndPlay(struct sockaddr_in * senderinfo){
 }
 
 void* playFunc(struct sockaddr_in * senderinfo){
+  ALint state, num;
+  ALboolean Bool;
+  ALenum error;
+  Bool = alIsSource(playsource);
+  fprintf(stderr, "%s %x\n", "FALSE: alIsSource playFunc", Bool);
   while(1){
-    ALshort data[10000];
-    int m;
+    ALshort data[SAMPLESIZE];
+    ALuint buffer;
     socklen_t addrlen;
-    if((m = recvfrom(sock, data, sizeof(ALshort)*10000, 0, (struct sockaddr *)senderinfo, &addrlen)) == -1 ){
+    alutInit(0, NULL);
+    int m;
+    if((m = recvfrom(sock, data, sizeof(ALshort)*SAMPLESIZE, 0, (struct sockaddr *)senderinfo, &addrlen)) == -1 ){
       perror("recv");
       exit(1);
     }
-    write(fileno(stderr), data, m);
+    fprintf(stderr, "%s %d\n", "recvdata", m);
+    alGetError();
     alGenBuffers(1, &buffer);
-//    fprintf(stderr, "buffergen\n");
-    alBufferData(buffer, AL_FORMAT_MONO16, data, m, SRATE);
-    alSourceQueueBuffers(playsource, 1, &buffer);
-    alSourcePlay(playsource);
-//    fprintf(stderr, "%s\n", "play");
-    if(callFlag==OFF){
-//      fprintf(stderr,"%s\n", "OFF");
-      break;
+    if ((error = alGetError()) != AL_NO_ERROR){
+      fprintf(stderr, "%s %x\n", "Error: alGenBuffers", error);
+//      exit(1)
     }
-  }
-}
+    Bool = alIsBuffer(buffer);
+    fprintf(stderr, "%s %x\n", "FALSE: alIsBuffers", Bool);
 
-void* queueFunc(void* param){
-  int processed;
-  while(1){
-    alGetSourcei(playsource, AL_BUFFERS_PROCESSED, &processed);
-    int i;
-    for(i=0; i < processed; i++){
-      alSourceUnqueueBuffers(playsource, 1, &buffer);
-      alDeleteBuffers(1, &buffer);
+    alGetError();
+    alBufferData(buffer, AL_FORMAT_MONO16, data, m, SRATE);
+    if ((error = alGetError()) != AL_NO_ERROR){
+      fprintf(stderr, "%s %x\n", "Error: alBufferData", error);
+      exit(1);
+    }
+    if ((Bool = alIsBuffer(buffer)) != AL_TRUE){
+      fprintf(stderr, "%s %x\n", "FALSE: alIsBuffers2", Bool);
+      exit(1);
+    }
+
+    alGetError();
+    alSourceQueueBuffers(playsource, 1, &buffer);
+    if ((error = alGetError()) != AL_NO_ERROR){
+      fprintf(stderr, "%s %x\n", "Error: alSourceQueueBuffers", error);
+      Bool = alIsSource(playsource);
+      fprintf(stderr, "%s %x\n", "Error: alIsSource", Bool);
+      Bool = alIsBuffer(buffer);
+      fprintf(stderr, "%s %x\n", "Error: alIsBuffer3", Bool);
+      exit(1);
+    }
+    alGetSourcei(playsource, AL_SOURCE_STATE, &state);
+    exit(1);
+    if (state != AL_PLAYING) {
+      alGetError();
+      alSourcePlay(playsource);
+      if ((error = alGetError()) != AL_NO_ERROR){
+        fprintf(stderr, "%s %x\n", "Error: alSourcePlay", error);
+      }
+      double sleepTime = (double)m / sizeof(ALshort) / SRATE;
+      alutSleep(sleepTime-0.1);
     }
     if(callFlag==OFF) break;
   }
+  alutExit();
+}
+
+void* queueFunc(void* param){
+  alutSleep(0.2);
+  int processed;
+  int i;
+  alutInit(0, NULL);
+  while(1){
+    ALuint* unqueueBuffer;
+    alGetSourcei(playsource, AL_BUFFERS_PROCESSED, &processed);
+//    fprintf(stderr, "%s %d\n","processed", processed);
+    for(i=0; i < processed; i++){
+      alSourceUnqueueBuffers(playsource, 1, unqueueBuffer);
+      alDeleteBuffers(1, unqueueBuffer);
+    }
+    if(callFlag==OFF) break;
+    alutSleep(0.1);
+  }
+  alutExit();
 }
