@@ -1,0 +1,488 @@
+\documentclass[10pt,a4j,dvipdfmx]{jsarticle}
+\usepackage[utf8]{inputenc}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage[usenames,dvipdfmx]{color}
+\usepackage{amsmath}
+\usepackage{bm}
+\usepackage[left=19.05mm, right=19.05mm, top=25.40mm, bottom=25.40mm]{geometry}
+\usepackage{tikz}
+\usepackage{circuitikz}
+\usepackage{siunitx}
+\usepackage{listings}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{textcomp}
+\usepackage{gnuplot-lua-tikz}
+
+\lstset{%
+  language={C},
+  basicstyle={\small},%
+  identifierstyle={\small},%
+  commentstyle={\small\itshape},%
+  keywordstyle={\small\bfseries},%
+  ndkeywordstyle={\small},%
+  stringstyle={\small\ttfamily},
+  frame={tb},
+  breaklines=true,
+  columns=[l]{fullflexible},%
+  numbers=left,%
+  xrightmargin=0zw,%
+  xleftmargin=3zw,%
+  numberstyle={\scriptsize},%
+  stepnumber=1,
+  numbersep=1zw,%
+  lineskip=-0.5ex%
+}
+
+\usepackage{fouriernc}
+\usepackage[scaled]{helvet}
+\usepackage[T1]{fontenc}
+\renewcommand{\ttdefault}{fvm}
+
+\let\oldthefootnote\thefootnote
+\def\thefootnote{{\color{Magenta}\oldthefootnote}}
+
+\newcommand{\enhance}[1]{{\gtfamily\sffamily#1}}
+\makeatletter
+\def\@jikkenname{}
+\def\@jikkennum{}
+\def\@reportname{}
+\def\@studentnumber{}
+\def\@studentname{}
+\def\@studentdepartment{}
+\def\@friendnames{}
+\def\@groupnumber{}
+\newcommand{\jikkenset}[2]{\def\@jikkennum{#1}\def\@jikkenname{#2}}
+\newcommand{\studentset}[3]{\def\@studentnumber{#1}\def\@studentname{#2}\def\@studentdepartment{#3}}
+\newcommand{\reportnameset}[1]{\def\@reportname{#1}}
+\newcommand{\friendname}[1]{\def\@friendnames{#1}}
+\newcommand{\groupnumber}[1]{\def\@groupnumber{#1}}
+\renewcommand{\maketitle}{
+\noindent{\color{RoyalPurple}\hrule height 1pt \hfill}
+\vspace{5pt}
+\begin{center}
+\enhance{{\Large{電気電子情報一（前期）実験}}}\\[7pt]
+\enhance{{\Huge\textbf{\@jikkennum{}. \@jikkenname}}}\\[5pt]
+\enhance{{\LARGE{\@reportname}}}\\[15pt]
+\@studentnumber\ \ \ \@studentname{}（\@studentdepartment{}）\\[1pt]
+共同実験者: \@friendnames（第\@groupnumber{}班）\\[1pt]
+\today
+\end{center}
+\vspace{-10pt}
+\noindent{\color{RoyalPurple}\hrule height 1pt \hfill}
+}
+\makeatother
+\jikkenset{A3}{ディジタル回路}
+\reportnameset{総合レポート}
+\studentset{03-160441}{土屋潤一郎}{工学部 電子情報工学科}
+\friendname{井上友貴、田中大幹、坂口達彦}
+\groupnumber{28}
+
+\makeatletter
+\let\@oldsec\section
+\let\@oldsubsec\subsection
+\renewcommand{\section}[1]{\@oldsec{#1}\vspace{-5pt}{\color{TealBlue}\hrule height 0.6pt \hfill}\par}
+\renewcommand{\thesection}{\arabic{section}.}
+\renewcommand{\subsection}[1]{\vspace{-7pt}\@oldsubsec{#1}}
+\makeatother
+
+\begin{document}
+\maketitle
+
+\section{実験の目的}
+アナログ回路で出来ているにも関わらず、論理ゲートそれ自体はディジタル回路の中では理想的なディジタル素子として扱える。
+その理由を、論理ゲートのパッケージであるICを用いて論理ゲートの基本特性を測定することで理解する。
+その上で、簡単な組み合わせ回路や順序回路を設計し、製作して、ディジタル回路の設計について学ぶ。
+\section{実験の原理}
+\subsection{CMOSインバータ}
+CMOSによるNOTゲートは図1のようになる。
+入力がHiならば$p$MOSは導通せず、従って電源電圧は出力に伝わらない。
+入力がLowならば$p$MOSは導通し、$n$MOSが導通しないので電源電圧がダイレクトに出力となる。
+これらCMOSは、TTL等に比べればディジタル素子として理想的であり、基本的なアナログ的な特性としては直流特性とスイッチング特性を知りたい。
+直流特性とは、直流電圧に対する出力電圧の特性であり、スイッチング特性とは、スイッチングが実際には即時に行われないことによってアナログ的要素として発生する、Hi/Lowの遷移時間や、入力のスイッチングに対して出力のスイッチングが即時に行われないことによる立ち上がり・立ち下がり時間の特性のことを指す。
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=8cm]{NOT.png}
+       \caption{CMOSインバータ}
+\end{figure}
+ 
+\subsection{エッジ・トリガD-FF}
+ポジティブ・エッジトリガD-FFはクロックと入力d、出力qを持ち、クロック立ち上がり時の入力dを出力qに（1クロックの間）保持し続ける。
+その論理ゲートによる構成は図2に示す。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=12cm]{D-FF.png}
+       \caption{ポジティブエッジトリガD-FF}
+\end{figure}
+
+\subsection{加算器}
+繰り上がりを考慮した1bit1分に足し算を行う回路を全加算器と称す。
+2入力x,yに加え入力として前の桁からの繰り上がり$c_in$を持ち、出力としてその桁の結果sとともに次の位への繰り上がり$c_out$を持つ。これを図3に示す。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=9cm]{FA.png}
+       \caption{全加算器}
+\end{figure}
+
+
+全加算器を用いて実際に複数ビット（複数桁）の加算を行う方法はいくつか存在する。
+例えば、全加算器を桁数分用意し、各桁の$c_out$を直接次の$c_in$に接続していくリプルキャリーアダーや、桁上がりを先んじて計算しておくキャリールックアヘッドジェネレータを用いた方法などがあるが、これらはいずれも順序回路ではない。
+
+一方、直列加算回路は、一つの全加算器を、記憶素子を組み合わせて使いまわす回路である。その一例を図4に示す。2つのシフトレジスタにそれぞれ足す2進数を入れ、その後スイッチを切り替えてクロックを進めると片方のシフトレジスタに答えが下の桁から入っていく、ということになる。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=16cm]{token.png}
+       \caption{直列加算回路}
+\end{figure}
+
+\section{実験方法}
+回路の製作はブレッドボード上で行った。
+\subsection{CMOSインバータの入出力特性}
+図5のような回路を用いて、CMOSインバータの入出力特性を測定する。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=12cm]{invSokutei.png}
+       \caption{CMOSインバータ特性測定回路}
+\end{figure}
+
+\subsubsection{閾値電圧の測定}
+電源電圧を定格電圧以下で変化させ、それに対する閾値電圧を測定する。
+パルスジェネレータは正弦波に設定する。
+オシロスコープを特にX-Yモードに設定し、直流特性を測定する。
+\subsubsection{立ち上がり時間・立ち下がり時間の測定}
+電源電圧と入力電圧を\SI{5}{\volt}に固定し、入力波と負荷のインバータの個数を表1のように変化させ、立ち上がり時間と立ち下がり時間を測定する。
+
+\begin{table}
+  \begin{center}
+    \caption{立ち上がり時間と立ち下がり時間測定の条件}
+    \begin{tabular}{|c|c|c|c|} \hline
+      波形 & 周波数[\si{\hertz}] & インバータ数 \\ \hline \hline
+      正弦波 & 10k & 3 \\
+      正弦波 & 20k & 3 \\
+      正弦波 & 50k & 3 \\
+      正弦波 & 100k & 3 \\
+      正弦波 & 200k & 3 \\
+      正弦波 & 500k & 3 \\
+      正弦波 & 1M & 3 \\
+      正弦波 & 2M & 3 \\
+      正弦波 & 5M & 3 \\
+      方形波 & 1M & 4 \\             
+      方形波 & 1M & 3 \\
+      方形波 & 1M & 2 \\
+      方形波 & 1M & 1 \\
+      \hline
+    \end{tabular}
+  \end{center}
+\end{table}
+
+\subsection{エッヂ・トリガD-FFの構成と動作確認}
+図2に示すようなD-FFを構成し、入力dをスイッチング出来るようにし、出力qをその動作を以下の手順で確認する。（0が\SI{0}{\volt}、1が\SI{5}{\volt}である。）
+
+\begin{enumerate}
+\item 入力dを1にして、clkを$0\to1$
+\item dを適当に変化させる
+\item clkを$1\to0$
+\item dを適当に変化させる
+\item dが0の時、clkを$0\to1$
+\item dを適当に変化させる
+\item clkを$0\to1$
+\item dを適当に変化させる
+\end{enumerate}
+
+\subsection{直列加算回路の製作}
+\subsubsection{製作と動作確認}
+図4のような直列加算回路を製作し、その動作が正しいことを確認する。
+\subsubsection{直列加算回路の制御部の設計}
+図6のようなタイムチャートを実現する回路を製作し、スタートスイッチを立ち上げてクロックを進めると、8クロックだけenable信号を立ち上げ、図4の回路が8ビット同士の加算を行って停止するような制御を行う。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=9cm]{token.png}
+       \caption{制御回路タイミングチャート}
+\end{figure}
+
+
+\section{使用器具}
+\begin{description}
+\item[ファンクション・ジェネレータ] IWATSU SG-4104
+\item[直流電源] KENWOOD PR18-1.2A
+\item[オシロスコープ] LeCroy WaveJet 314
+\item[抵抗] \SI{10}{\kilo\ohm}, 1/8W, $\pm$5\%, 炭素皮膜抵抗（プルダウン及びプルアップ用）
+\item[コンデンサ] \SI{0.1}{\micro\farad}, 積層セラミックコンデンサ（バイパスコンデンサ用）
+\item[NOT IC] HD74HC04（特性測定用）, HD74LS04
+\item[NAND IC] HD74LS00
+\item[D-FF IC] HD74HC175（制御回路）, HD74LS175（直列加算回路）
+\item[OR IC] HD74LS32
+\item[XOR IC] HD74LS86
+\item[4bit Counter IC] HD74HC393
+\item[8bit shift Register IC] HD74LS164
+\end{description}
+
+用意されたHCのICの個数が少なかったため、製作した回路のほとんどで消費電力の大きいLSのICを用いざるを得なかった。
+
+\section{実験結果}
+
+\subsection{CMOSインバータの入出力特性}
+\subsubsection{閾値電圧の測定}
+図7のように（但し、バイパスコンデンサは無し）回路を組み、図8〜図10のような結果となった。
+凡例は（入力電圧, 電源電圧）となっている。
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+       \centering
+       \includegraphics[width=6cm]{invSokutei.png}
+       \caption{CMOSインバータ特性測定回路}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.6}{\input{3V2V}}
+        \caption{2V及び3Vの測定結果}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+\end{figure}
+
+\begin{figure}[H]
+    \begin{tabular}{cc}
+      %---- 最初の図 ---------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.6}{\input{5V4V}}
+        \caption{4V及び5Vの測定結果}
+      \end{minipage} &
+      %---- 2番目の図 --------------------------
+      \begin{minipage}[t]{0.45\hsize}
+        \centering
+        \scalebox{0.6}{\input{6V}}
+        \caption{6Vの測定結果}
+      \end{minipage}
+      %---- 図はここまで ----------------------
+    \end{tabular}
+\end{figure}
+
+閾値電圧周辺は不安定な領域が存在するものの、おおよそ電源電圧の0.5倍程度であることがわかる。
+
+\subsubsection{立ち上がり時間・立ち下がり時間の測定}
+括弧中のバイパスコンデンサも加えた図7の回路（但し、今度は負荷のNOTゲートの数は可変、図7は3つ）で、結果は以下の表2のようになった。
+
+\begin{table}[H]
+    \centering
+    \caption{立ち上がり時間と立ち下がり時間測定の条件}
+    \begin{tabular}{|c|c|c||c|c|} \hline
+      波形 & 周波数[\si{\hertz}] & インバータ数 & $t_{pHL}$[\si{\nano\second}] & $t_{pLH}$[\si{\nano\second}] \\ \hline \hline
+      正弦波 & 10k & 3 & 測定不能* & 420 ??*\\
+      正弦波 & 20k & 3 & 測定不能* & 232 ??*\\
+      正弦波 & 50k & 3 & 44 & 76 \\
+      正弦波 & 100k & 3 & 36 & 38 \\
+      正弦波 & 200k & 3 & 25 & 41\\
+      正弦波 & 500k & 3 & 18.4 & 27.2 \\
+      正弦波 & 1M & 3 & 14.4 & 18.8 \\
+      正弦波 & 2M & 3 & 12.6 & 14.2\\
+      正弦波 & 5M & 3 & 10.6 & 11 \\
+      方形波 & 1M & 4 & 7.6 & 8.6 \\             
+      方形波 & 1M & 3 & 7.6 & 8.4 \\
+      方形波 & 1M & 2 & 7.2 & 8.0 \\
+      方形波 & 1M & 1 & 6.8 & 7.6 \\
+      \hline
+    \end{tabular}\\
+      *これらの測定条件では、
+      入力が閾値電圧周辺の不安定な領域を時間的に長く取り過ぎるため、
+      出力もその範囲でHi/Lowを激しく変動してしまい、測定不能であるか、測定値が意味を持たないと考えるべきである。
+\end{table}
+
+\subsection{エッヂ・トリガD-FFの構成と動作確認}
+以後、クロックはスイッチにより全て手動で行っている。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=12cm]{D-FF.png}
+       \caption{ポジティブエッジトリガD-FF}
+\end{figure}
+
+図11のようにD-FFを構成し、入力dをスイッチング出来るようにし、
+出力qにLEDをつないで電圧を簡単に確認できるようにした。動作を以下の手順で確認した。（0が\SI{0}{\volt}、1が\SI{5}{\volt}である。）
+
+\begin{enumerate}
+\item 入力dを1にして、clkを$0\to1$: 出力qが1となった
+\item dを適当に変化させる: qは1のままであった
+\item clkを$1\to0$: qは動かなかった
+\item dを適当に変化させる: qは1のままであった
+\item dが0の時、clkを$0\to1$: qが0となった
+\item dを適当に変化させる: qは0のままであった
+\item clkを$0\to1$: qは動かなかった
+\item dを適当に変化させる: qは0のままであった
+\end{enumerate}
+
+\subsection{直列加算回路}
+\subsubsection{製作と動作確認}
+図4のように直列加算回路全体を製作し、その一部を図12と図13に示す。
+また、計算を確認するために、8ビットレジスタを全てLEDに繋げて、観測している状態で、手動クロックにより動作させた。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=12cm]{input.png}
+       \caption{入力回路}
+\end{figure}
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=12cm]{FA.png}
+       \caption{全加算器}
+\end{figure}
+
+\subsubsection{制御部の設計と製作・全体の動作確認}
+図14のように制御回路全体を製作し、その細部を図12、図15、図16に示す。5.3.1節と同様の方法で計算の結果が正しいことを確認した。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=12cm]{token.png}
+       \caption{制御回路全体}
+\end{figure}
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=12cm]{1cycle.png}
+       \caption{1サイクル出力回路}
+\end{figure}
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=9cm]{8cycleasc.png}
+       \caption{8サイクルenable生成回路}
+\end{figure}
+
+\section{考察}
+\subsection{論理ゲートの設計}
+CMOSトランジスタを用いて、$f = \overline{x\cdot y+z}$を実現する論理ゲートを設計する。
+まず、$f$の真理値表は以下の通り。
+\begin{table}[H]
+    \centering
+    \caption{真理値表}
+    \begin{tabular}{|c|c|c||c|} \hline
+      $x$ & $y$ & $z$ & $f$ \\ \hline \hline
+      0 & 0 & 0 & 1 \\
+      0 & 0 & 1 & 0 \\
+      0 & 1 & 0 & 1 \\
+      0 & 1 & 1 & 0 \\
+      1 & 0 & 0 & 1 \\
+      1 & 0 & 1 & 0 \\
+      1 & 1 & 0 & 0 \\
+      1 & 1 & 1 & 0 \\
+      \hline
+    \end{tabular}
+\end{table}
+
+CMOSであるから、とりあえず$p$MOS側だけ考えて、$n$MOS側はそれと相補的に設計すればよい。
+そこで、じっと真理値表を見てみると、$z$が1の時だけは必ず$f$が0である。
+従って、$z$に繋がれている$p$MOSトランジスタがOFFであるときは、必ず、出力fにまで電源電圧が伝わらない。従って、$z$に繋がれている$p$MOSトランジスタは直列接続である。
+次いで、それが なにと 直列接続なのかを考えなければならない。従って、今度は逆に$z$が0の時に目を向けてみると、$x$と$y$が揃って1の時、つまり両者に繋がれている$p$MOSトランジスタがOFFであるとき以外は、出力fに電源電圧が伝わっている。
+従って、$x$と$y$に繋がれた$p$MOSトランジスタが、並列接続で、それが$z$に繋がれている$p$MOSトランジスタと直列接続であれば良く、これと相補的に$n$MOS側を設計して、論理ゲートは図17のようになる。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=9cm]{CMOS.png}
+       \caption{論理ゲート($f = \overline{x\cdot y+z}$)}
+\end{figure}
+
+\subsection{伝搬遅延時間とファンアウト}
+表2の、特に下4行の結果から、伝搬遅延時間と次段のゲート数（ファンアウト）の間にある関係を利用して、CMOSインバータの基本遅延時間$\tau_0$と負荷による遅延時間増大係数である$\tau_1$を見積もる。
+
+伝搬遅延時間を$t_p$、ファンアウトを$n$とすると、$t = \tau_0 + n\tau_1$という近似的にあらわされるから、
+表2の下から4行を用いて、yを伝搬遅延時間、xをファンアウトとしてその推定回帰式を求めると、
+
+\begin{align}
+t_{pHL}:\hspace{2pt} y =& 6.6 \cdot 10^{-9}+\left( 0.28\cdot 10^{-9} \right) x\\
+t_{pLH}:\hspace{2pt} y =& 7.3 \cdot 10^{-9} +\left( 0.34\cdot 10^{-9} \right) x
+\end{align}
+従って、
+
+\begin{align}
+t_{pHL}:\hspace{2pt} \tau_0 = 6.6[\si{\nano\second}], \hspace{2pt} &\tau_1 = 0.28[\si{\nano\second}]\\
+t_{pLH}:\hspace{2pt} \tau_0 = 7.3[\si{\nano\second}], \hspace{2pt}  &\tau_1 = 0.34[\si{\nano\second}]
+\end{align}
+
+程度と見積もれる。
+
+\subsection{ある順序回路の設計}
+次のような自動販売機を考える。
+\begin{itemize}
+\item 200円のとある商品だけが販売されている。
+\item 使用できるのは50円硬貨と100円硬貨だけである。
+\item 入れた硬貨の合計額が200円以上になると、商品を排出する。
+\item 入れた硬貨の合計額が200円より大きいと、商品とともにお釣りを排出する。
+\end{itemize}
+
+この自動販売機を制御するため、入力($x_0$, $x_1$)、出力$y_0$, $y_1$を考える。
+
+\begin{itemize}
+\item 50円硬貨が投入されると、1クロックだけ$x_1$が立ち上がる。
+\item 100円硬貨が投入されると、1クロックだけ$x_0$と$x_1$の両方が立ち上がる。
+\item 出力$y_0$が1クロック立ち上がると、商品を排出する。
+\item 出力$y_1$が1クロック立ち上がると、お釣りを排出する。
+\end{itemize}
+
+この状態機械を考えると、状態は以下のように4つ考えられる。
+
+\begin{description}
+\item[$S_1$] 硬貨を50円分受け取っている状態。
+\item[$S_2$] 硬貨を100円分受け取っている状態。
+\item[$S_3$] 硬貨を150円分受け取っている状態。
+\item[$S_0$] 上記のうちいずれでもない状態。つまり硬貨が投入されていないか、商品が排出された状態。
+\end{description}
+
+これに満たす状態遷移表を以下表4に示す。
+
+\begin{table}[H]
+    \centering
+    \caption{状態遷移表(S(t+1), $y_0y_1$)}
+    \begin{tabular}{|c||c|c|c|} \hline
+      $S(t) \backslash x_0x_1$ & 00 & 01 & 11 \\ \hline \hline
+      $S_0$ & $S_0$, 00 & $S_1$, 00 & $S_2$, 00 \\
+      $S_1$ & $S_1$, 00 & $S_2$, 00 & $S_3$, 00 \\
+      $S_2$ & $S_2$, 00 & $S_3$, 00 & $S_0$, 10 \\
+      $S_3$ & $S_3$, 00 & $S_0$, 10 & $S_0$, 11 \\
+      \hline
+    \end{tabular}
+\end{table}
+
+また、状態割り当てを表5の如くすると、その出力関数と次状態関数は、
+\begin{table}[H]
+    \centering
+    \caption{状態割り当て}
+    \begin{tabular}{|c||c|} \hline
+      状態名 & $s_0s_1$ \\ \hline \hline
+      $S_0$ & 00 \\
+      $S_1$ & 01 \\
+      $S_2$ & 11 \\
+      $S_3$ & 10 \\
+      \hline
+    \end{tabular}
+\end{table}
+
+\begin{align}
+y_0 =& x_1s_0s_1' + x_0s_0\\
+y_1 =& x_0s_0s_1'\\
+s_0 =& x_0s_0' + x_0s_1' + x_1's_0 + x_0'x_1s_1\\
+s_1 =& x_1's_1 + x_0'x_1s_0' + x_1s_0's_1'
+\end{align}
+
+これを論理回路で実現したものを、図18に示す。
+
+\begin{figure}[H]
+       \centering
+       \includegraphics[width=17cm]{statemachine.png}
+       \caption{自動販売機の制御回路}
+\end{figure}
+
+\section{参考資料}
+\begin{enumerate}
+\item 東京大学工学部 電子情報工学科・電気電子工学科（2016）『電気電子情報第一（前期）実験 テキスト』
+\item 五島正裕（2007）『ディジタル回路』数理工学社
+\end{enumerate}
+
+\end{document}
